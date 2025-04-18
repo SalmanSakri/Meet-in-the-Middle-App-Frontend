@@ -12,7 +12,7 @@ import { PiEye, PiEyeSlash } from "react-icons/pi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "../../component/LoadingSpinner";
 // Lazy load images for better performance
-import LoginImage from "../../assets/Login.svg";
+import LoginImage from "../../assets/login.svg";
 import AuthImg from "../../assets/auth.svg";
 
 // Email validation regex - compiled once for reuse
