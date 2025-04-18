@@ -11,6 +11,11 @@ import Layout from "../layout/Layout";
 // import MeetingForm from "../components/MeetingForm";
 import ToastNotificationManager from "../pages/ToastNotificationManager ";
 
+import AdminSingup from "../pages/auth/admin/AdminSingup";
+import AdminLogin from "../pages/auth/admin/AdminLogin";
+import AdminForgotPassword from "../pages/auth/admin/AdminForgotPassword";
+import AdminResetPassword from "../pages/auth/admin/AdminResetPassword";
+
 import CreateMeeting from "../pages/meeting/CreateMeeting";
 import MeetingDetails from "../pages/meeting/MeetingDetails";
 import MeetingForm from "../pages/meeting/MeetingForm";
@@ -29,26 +34,27 @@ const PublicRoute = () => {
       <Route path="/create-password" element={<CreatePassword />} />
       <Route path="/MeetingDetails" element={<MeetingDetails />} />
 
- 
+      <Route path="admin/singup" element={<Layout><AdminSingup/></Layout>} />
+      <Route path="admin/login" element={<Layout><AdminLogin/></Layout>}/>
+      <Route path="admin/forgot-password" element={<Layout><AdminForgotPassword/></Layout>}/>
+      <Route path="admin/reset-pwd" element={<Layout><AdminResetPassword/></Layout>}/>
   
-     
       {/* <Route path="/layout" element={<Layout />} /> */}
-     
-  <Route path="/MeetingDetails" element={<MeetingDetails />} />
-  <Route path="/MeetingInvite" element={<MeetingInvite />} />
-  <Route path="/LocationSuggestions" element={<LocationSuggestions />} />
-  <Route path="/layout" element={<Layout/>} />
-  <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-  <Route path="/MeetingForm" element={<MeetingForm />} />
-  <Route path="/create-meeting" element={<Layout><CreateMeeting /></Layout>} />
-  <Route path="/meetings/:meetingId/edit" element={<Layout><EditMeeting/></Layout>}/>
-  <Route path="/meetings/:meetingId" element={<Layout><MeetingDetails /></Layout>} />
+      <Route path="/MeetingDetails" element={<MeetingDetails />} />
+      <Route path="/MeetingInvite" element={<MeetingInvite />} />
+      <Route path="/LocationSuggestions" element={<LocationSuggestions />} />
+      <Route path="/layout" element={<Layout/>} />
+      <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+      <Route path="/MeetingForm" element={<MeetingForm />} />
+      <Route path="/create-meeting" element={<Layout><CreateMeeting /></Layout>} />
+      <Route path="/meetings/:meetingId/edit" element={<Layout><EditMeeting/></Layout>}/>
+      <Route path="/meetings/:meetingId" element={<Layout><MeetingDetails /></Layout>} />
   
   {/* New invitation response route */}
-  <Route path="/invitation/:meetingId" element={<InvitationResponse />} />
+      <Route path="/invitation/:meetingId" element={<InvitationResponse />} />
   
   {/* Alternatively, you could use a structure like this for explicit actions */}
-  <Route path="/response/:meetingId/:token/:response" element={<InvitationResponse />} />
+      <Route path="/response/:meetingId/:token/:response" element={<InvitationResponse />} />
 
 
 

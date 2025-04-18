@@ -110,7 +110,7 @@ const Sidebar = () => {
 
           {/* Location Suggestions Link */}
           <NavLink
-            to="/location-suggestions"
+            to="/LocationSuggestions"
             className={({ isActive }) =>
               `flex cursor-pointer space-x-3 items-center text-base shadow-sm rounded-lg px-3 py-2 font-medium border 
               border-gray-300 transition-all duration-200
@@ -167,6 +167,27 @@ const Sidebar = () => {
             </span>
             <p className={`${collapsed ? "hidden" : "block"} truncate`}>
               Messages
+            </p>
+          </NavLink>
+
+          {/* Admin deshbord */}
+          <NavLink
+            to="/admin-singup"
+            className={({ isActive }) =>
+              `flex cursor-pointer space-x-3 items-center text-base shadow-sm rounded-lg px-3 py-2 font-medium border 
+              border-gray-300 transition-all duration-200
+              ${
+                isActive
+                  ? "bg-blue-100 text-blue-600 shadow-md"
+                  : "bg-gray-50 text-blue-500 hover:bg-blue-50"
+              }`
+            }
+          >
+            <span className="text-xl">
+              <MdDashboard />
+            </span>
+            <p className={`${collapsed ? "hidden" : "block"} truncate`}>
+              Admin Dashboard
             </p>
           </NavLink>
 

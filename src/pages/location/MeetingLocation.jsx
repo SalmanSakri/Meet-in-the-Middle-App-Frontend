@@ -6,11 +6,14 @@ import {
   getLocationSuggestions,
   respondToInvitation,
   getMeetingById,
+  clearError,
+  clearSuccess,
 } from "../../redux/slices/meetingSlice";
 import {
   getCurrentPosition,
   formatDistance,
 } from "../../services/locationService";
+import { toast } from "react-toastify";
 
 const MeetingLocation = () => {
   const dispatch = useDispatch();
@@ -29,6 +32,7 @@ const MeetingLocation = () => {
   } = useSelector((state) => state.meetings);
 
   const [locationError, setLocationError] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [placeType, setPlaceType] = useState("restaurant");
   const [searchRadius, setSearchRadius] = useState(1500);
   const [responseStatus, setResponseStatus] = useState({
@@ -37,12 +41,20 @@ const MeetingLocation = () => {
     error: null,
   });
 
+  // Clear success/error messages when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+      dispatch(clearSuccess());
+    };
+  }, [dispatch]);
+
   // Handle invitation response if token and response are in URL
   useEffect(() => {
     if (token && responseType && ["accept", "decline"].includes(responseType)) {
       handleInvitationResponse(responseType);
     }
-  }, [token, responseType]);
+  }, [token, responseType, meetingId]);
 
   // Load meeting data
   useEffect(() => {
@@ -79,9 +91,15 @@ const MeetingLocation = () => {
 
   // Get current location and update for meeting
   const handleUpdateLocation = async () => {
+    setLocationLoading(true);
+    setLocationError(null);
+
     try {
-      setLocationError(null);
       const position = await getCurrentPosition();
+
+      if (!position || !position.longitude || !position.latitude) {
+        throw new Error("Could not retrieve valid location coordinates");
+      }
 
       await dispatch(
         updateLocation({
@@ -90,8 +108,15 @@ const MeetingLocation = () => {
           latitude: position.latitude,
         })
       ).unwrap();
+
+      toast.success("Your location was updated successfully!");
     } catch (error) {
       setLocationError(error.message || "Failed to update location");
+      toast.error(
+        "Location update failed: " + (error.message || "Unknown error")
+      );
+    } finally {
+      setLocationLoading(false);
     }
   };
 
@@ -171,9 +196,9 @@ const MeetingLocation = () => {
           <button
             onClick={handleUpdateLocation}
             className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-            disabled={loading}
+            disabled={locationLoading}
           >
-            {loading ? "Updating..." : "Update My Location"}
+            {locationLoading ? "Updating..." : "Update My Location"}
           </button>
 
           {locationError && (
@@ -226,17 +251,23 @@ const MeetingLocation = () => {
         <div className="mb-4">
           <h3 className="font-semibold">Central Location</h3>
           <p className="text-sm">
-            Latitude: {centralLocation[0].toFixed(6)}, Longitude:{" "}
-            {centralLocation[1].toFixed(6)}
+            {Array.isArray(centralLocation) ? (
+              <>
+                Latitude: {centralLocation[1].toFixed(6)}, Longitude:{" "}
+                {centralLocation[0].toFixed(6)}
+                <a
+                  href={`https://www.google.com/maps?q=${centralLocation[1]},${centralLocation[0]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 text-sm hover:underline block mt-1"
+                >
+                  View on Google Maps
+                </a>
+              </>
+            ) : (
+              "Central location coordinates not available in the correct format."
+            )}
           </p>
-          <a
-            href={`https://www.google.com/maps?q=${centralLocation[0]},${centralLocation[1]}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 text-sm hover:underline"
-          >
-            View on Google Maps
-          </a>
         </div>
       )}
 
@@ -250,7 +281,9 @@ const MeetingLocation = () => {
                 <div className="font-medium">{place.name}</div>
                 <div className="text-sm text-gray-600">{place.address}</div>
                 <div className="text-sm text-gray-500">
-                  Distance: {formatDistance(place.distance)}
+                  {place.distance !== undefined
+                    ? formatDistance(place.distance)
+                    : "Distance unknown"}
                 </div>
                 {place.location && place.location.coordinates && (
                   <a

@@ -55,6 +55,9 @@ const MeetingCard = ({ meeting }) => {
     navigate(`/meetings/${meeting.id}/edit`);
   };
 
+    const handleDetail = () => {
+      navigate(`/meetings/${meeting.id}`);
+    };
   // Fixed the handleDelete to use the meeting.id from props
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this meeting?")) {
@@ -154,12 +157,13 @@ const MeetingCard = ({ meeting }) => {
             >
               <FaEdit className="mr-1" /> Edit
             </button>
-            <Link
-              to={`/meetings/${meeting.id}`}
+            <button
+             
+              onClick={handleDetail}
               className="flex items-center px-3 py-1 text-xs font-medium text-green-700 bg-green-100 rounded hover:bg-green-200"
             >
               <FaInfoCircle className="mr-1" /> Details
-            </Link>
+            </button>
             <button
               onClick={handleDelete}
               className="flex items-center px-3 py-1 text-xs font-medium text-red-700 bg-red-100 rounded hover:bg-red-200"

@@ -7,7 +7,7 @@ import {
   clearMeetingSuccess,
 } from "../../redux/slices/meetingSlice";
 import { getCurrentPosition } from "../../services/locationService";
-import AttendeeInput from "../../component/AttendeeInput";
+// import AttendeeInput from "../../component/AttendeeInput";
 import LoadingSpinner from "../../component/LoadingSpinner";
 import { toast } from "react-toastify";
 // Import a better date-time picker

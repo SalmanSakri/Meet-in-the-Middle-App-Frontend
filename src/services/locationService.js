@@ -11,43 +11,43 @@ export const getCurrentPosition = () => {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error("Geolocation is not supported by your browser"));
-    } else {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: position.timestamp,
-          });
-        },
-        (error) => {
-          let errorMessage;
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = "User denied the request for geolocation";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = "Location information is unavailable";
-              break;
-            case error.TIMEOUT:
-              errorMessage = "The request to get user location timed out";
-              break;
-            default:
-              errorMessage = "An unknown error occurred";
-          }
-          reject(new Error(errorMessage));
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        }
-      );
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => {
+        let errorMessage;
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage =
+              "Location permission denied. Please enable location access to use this feature.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage =
+              "Location information is unavailable. Please try again later.";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "Location request timed out. Please try again.";
+            break;
+          default:
+            errorMessage = "An unknown error occurred while getting location.";
+        }
+        reject(new Error(errorMessage));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
   });
 };
-
 /**
  * Calculate distance between two geographical points using the Haversine formula
  * @param {Object} point1 - First point with latitude and longitude

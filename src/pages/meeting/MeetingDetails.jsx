@@ -1,7 +1,14 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useState,useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
+
+import LocationTracker from "../../component/LocationTracker";
+import LocationSuggestions from "../../component/LocationSuggestions";
+import AttendeeLocationsMap from "../../component/AttendeeLocationsMap";
+import SelectMeetingLocation from "../../component/SelectMeetingLocation";
+import LoadingSpinner from "../../component/LoadingSpinner";
+import { getMeetingById, deleteMeeting } from "../../redux/slices/meetingSlice";
 import {
   FaCalendarAlt,
   FaMapMarkerAlt,
@@ -17,16 +24,21 @@ import {
   FaPhoneAlt,
   FaUserPlus,
 } from "react-icons/fa";
-import LoadingSpinner from "../../component/LoadingSpinner";
-import { getMeetingById, deleteMeeting } from "../../redux/slices/meetingSlice";
+
 
 const MeetingDetail = () => {
   const { meetingId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const MAP_API_URL = import.meta.env.VITE_APP_GOOGLE_MAPS_API_KEYL;
+
+  const [selectedLocationSuggestion, setSelectedLocationSuggestion] =
+    useState(null);
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState(MAP_API_URL);
+
   // Get user and meeting state from Redux
-  const { user } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
   const {
     currentMeeting: meeting,
     loading,
@@ -34,25 +46,25 @@ const MeetingDetail = () => {
   } = useSelector((state) => state.meetings);
 
   // Fetch meeting details when component mounts or meetingId changes
- useEffect(() => {
-   if (meetingId) {
-     dispatch(getMeetingById(meetingId))
-       .unwrap()
-       .catch((err) => {
-         // Check for authentication errors specifically
-         if (
-           err.includes("unauthorized") ||
-           err.includes("not authorized") ||
-           err.includes("Not authorized")
-         ) {
-           toast.error("You don't have permission to view this meeting");
-           navigate("/dashboard");
-         } else {
-           toast.error(err || "Failed to load meeting details");
-         }
-       });
-   }
- }, [meetingId, dispatch, navigate]);
+  useEffect(() => {
+    if (meetingId) {
+      dispatch(getMeetingById(meetingId))
+        .unwrap()
+        .catch((err) => {
+          // Check for authentication errors specifically
+          if (
+            err.includes("unauthorized") ||
+            err.includes("not authorized") ||
+            err.includes("Not authorized")
+          ) {
+            toast.error("You don't have permission to view this meeting");
+            navigate("/dashboard");
+          } else {
+            toast.error(err || "Failed to load meeting details");
+          }
+        });
+    }
+  }, [meetingId, dispatch, navigate]);
 
   // Handle delete meeting action
   const handleDelete = async () => {
@@ -74,7 +86,27 @@ const MeetingDetail = () => {
       toast.error("Failed to delete meeting");
     }
   };
+  // Handle location confirmation
+  const handleLocationConfirmed = async (finalLocation) => {
+    try {
+      await dispatch(
+        updateMeetingLocation({
+          meetingId,
+          location: finalLocation,
+          token,
+        })
+      ).unwrap();
 
+      toast.success("Meeting location updated successfully");
+      setSelectedLocationSuggestion(null);
+    } catch (err) {
+      toast.error("Failed to update meeting location");
+    }
+  };
+
+   const handleLocationSelection = (suggestion) => {
+     setSelectedLocationSuggestion(suggestion);
+   };
   // Memoized computations
   const formattedDateAndTime = useMemo(() => {
     if (!meeting) return { date: "", startTime: "", endTime: "" };
@@ -144,7 +176,7 @@ const MeetingDetail = () => {
   if (loading) {
     return <LoadingSpinner />;
   }
-
+if (error) return <ErrorComponent error={error} navigate={navigate} />;
   if (error) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -222,6 +254,70 @@ const MeetingDetail = () => {
                       {formattedDateAndTime.startTime} -{" "}
                       {formattedDateAndTime.endTime}
                     </span>
+
+                    {meeting.location && (
+                      <div className="selected-location">
+                        <h3>Meeting Location</h3>
+                        <p>
+                          <strong>{meeting.location.name}</strong>
+                        </p>
+                        <p>{meeting.location.address}</p>
+                      </div>
+                    )}
+
+                    {/* Location tracking component */}
+                    <div className="location-section">
+                      <h2>Location Sharing</h2>{" "}
+                      <LocationTracker meetingId={meetingId} token={token} />
+                    </div>
+
+                    {/* Map showing all attendee locations */}
+                    <div className="map-section">
+                      <h2>Attendee Locations</h2>
+                      <AttendeeLocationsMap
+                        meetingId={meetingId}
+                        token={token}
+                        googleMapsApiKey={googleMapsApiKey}
+                      />
+                    </div>
+
+                    {/* Location suggestions */}
+                    <div className="suggestions-section">
+                      <LocationSuggestions
+                        meetingId={meetingId}
+                        token={token}
+                        onSelectLocation={handleLocationSelection}
+                      />
+                    </div>
+
+                    {/* Show the location confirmation for meeting creator only */}
+                    {isCreator && selectedLocationSuggestion && (
+                      <div className="confirm-location-section">
+                        <SelectMeetingLocation
+                          meetingId={meetingId}
+                          token={token}
+                          location={selectedLocationSuggestion}
+                          onSuccess={handleLocationConfirmed}
+                        />
+                      </div>
+                    )}
+
+                    {/* Show attendee list */}
+                    <div className="attendees-section">
+                      <h2>Attendees</h2>
+                      <ul className="attendee-list">
+                        {meeting.attendees.map((attendee) => (
+                          <li key={attendee.id} className="attendee-item">
+                            <span className="attendee-name">
+                              {attendee.name}
+                            </span>
+                            <span className={`status ${attendee.status}`}>
+                              {attendee.status}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -400,3 +496,153 @@ const MeetingDetail = () => {
 
 export default MeetingDetail;
  
+
+// import React, { useState, useEffect } from "react";
+// import axios from "axios";
+// import { useParams } from "react-router-dom";
+// import LocationTracker from "../../component/LocationTracker";
+// import LocationSuggestions from "../../component/LocationSuggestions";
+// import AttendeeLocationsMap from "../../component/AttendeeLocationsMap";
+// import SelectMeetingLocation from "../../component/SelectMeetingLocation";
+
+// const MeetingDetail = ({ user, token }) => {
+//   // Use useParams hook to get the meeting ID from the URL
+//   const { meetingId } = useParams();
+// const MAP_API_URL = import.meta.env.VITE_APP_GOOGLE_MAPS_API_KEYL;
+//   const [meeting, setMeeting] = useState(null);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState(null);
+//   const [selectedLocationSuggestion, setSelectedLocationSuggestion] =
+//     useState(null);
+//   const [googleMapsApiKey, setGoogleMapsApiKey] = useState(MAP_API_URL);
+
+//   // Make sure to handle the case when meeting might be null
+//   const isMeetingCreator = meeting ? meeting.createdBy === user.id : false;
+
+//   useEffect(() => {
+//     if (meetingId) {
+//       fetchMeetingDetails();
+//     } else {
+//       setError("Meeting ID is missing");
+//       setLoading(false);
+//     }
+//   }, [meetingId]);
+
+//   const fetchMeetingDetails = async () => {
+//     try {
+//       setLoading(true);
+//       const response = await axios.get(`/meetings/${meetingId}`, {
+//         headers: { Authorization: `Bearer ${token}` },
+//       });
+//       setMeeting(response.data);
+//       setLoading(false);
+//     } catch (err) {
+//       setError("Failed to fetch meeting details");
+//       setLoading(false);
+//     }
+//   };
+
+//   const handleLocationSelection = (suggestion) => {
+//     setSelectedLocationSuggestion(suggestion);
+//   };
+
+//   const handleLocationConfirmed = async (finalLocation) => {
+//     try {
+//       // Update the meeting with the selected location
+//       await axios.put(
+//         `/api/meetings/${meetingId}`,
+//         { location: finalLocation },
+//         { headers: { Authorization: `Bearer ${token}` } }
+//       );
+
+//       // Refresh meeting details
+//       fetchMeetingDetails();
+
+//       // Reset the selected suggestion
+//       setSelectedLocationSuggestion(null);
+//     } catch (err) {
+//       setError("Failed to update meeting with selected location");
+//     }
+//   };
+
+//   if (loading) return <div className="loading">Loading meeting details...</div>;
+//   if (error) return <div className="error">{error}</div>;
+//   if (!meeting) return <div className="not-found">Meeting not found</div>;
+
+//   return (
+//     <div className="meeting-detail-page">
+//       <h1>{meeting.title}</h1>
+//       <div className="meeting-info">
+//         <p>
+//           <strong>Date:</strong> {new Date(meeting.date).toLocaleDateString()}
+//         </p>
+//         <p>
+//           <strong>Time:</strong> {new Date(meeting.date).toLocaleTimeString()}
+//         </p>
+//         {meeting.location && (
+//           <div className="selected-location">
+//             <h3>Meeting Location</h3>
+//             <p>
+//               <strong>{meeting.location.name}</strong>
+//             </p>
+//             <p>{meeting.location.address}</p>
+//           </div>
+//         )}
+//       </div>
+
+//       {/* Location tracking component */}
+//       <div className="location-section">
+//         <h2>Location Sharing</h2>
+//         <LocationTracker meetingId={meetingId} token={token} />
+//       </div>
+
+//       {/* Map showing all attendee locations */}
+//       <div className="map-section">
+//         <h2>Attendee Locations</h2>
+//         <AttendeeLocationsMap
+//           meetingId={meetingId}
+//           token={token}
+//           googleMapsApiKey={googleMapsApiKey}
+//         />
+//       </div>
+
+//       {/* Location suggestions */}
+//       <div className="suggestions-section">
+//         <LocationSuggestions
+//           meetingId={meetingId}
+//           token={token}
+//           onSelectLocation={handleLocationSelection}
+//         />
+//       </div>
+
+//       {/* Show the location confirmation for meeting creator only */}
+//       {isMeetingCreator && selectedLocationSuggestion && (
+//         <div className="confirm-location-section">
+//           <SelectMeetingLocation
+//             meetingId={meetingId}
+//             token={token}
+//             location={selectedLocationSuggestion}
+//             onSuccess={handleLocationConfirmed}
+//           />
+//         </div>
+//       )}
+
+//       {/* Show attendee list */}
+//       <div className="attendees-section">
+//         <h2>Attendees</h2>
+//         <ul className="attendee-list">
+//           {meeting.attendees.map((attendee) => (
+//             <li key={attendee.id} className="attendee-item">
+//               <span className="attendee-name">{attendee.name}</span>
+//               <span className={`status ${attendee.status}`}>
+//                 {attendee.status}
+//               </span>
+//             </li>
+//           ))}
+//         </ul>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default MeetingDetail;

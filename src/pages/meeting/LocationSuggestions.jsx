@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { updateLocation, getLocationSuggestions } from "../../services/meetingService";
+import {
+  updateLocation,
+  getLocationSuggestions,
+} from "../../services/meetingService";
 import { getCurrentPosition } from "../../services/locationService";
 import { toast } from "react-toastify";
 
@@ -52,6 +55,10 @@ const LocationSuggestions = ({ meetingId }) => {
       // Get current position using browser geolocation
       const position = await getCurrentPosition();
 
+      if (!position || !position.longitude || !position.latitude) {
+        throw new Error("Could not retrieve valid location coordinates");
+      }
+
       // Update location on the server
       const response = await updateLocation(
         meetingId,
@@ -68,6 +75,9 @@ const LocationSuggestions = ({ meetingId }) => {
       }
     } catch (err) {
       setError(err.message || "Could not get your location");
+      toast.error(
+        "Location update failed: " + (err.message || "Unknown error")
+      );
     } finally {
       setLocationLoading(false);
     }
