@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { verifyOTP } from "../../../redux/slices/authSlice";
-import LoginImage from "../../../assets/Login.svg";
+import LoginImage from "../../../assets/login.svg";
 /**
  * OTP Verification Component
  * Handles user email verification with OTP code
