@@ -1,14 +1,18 @@
-import React, { useState,useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
-import LocationTracker from "../../component/LocationTracker";
-import LocationSuggestions from "../../component/LocationSuggestions";
-import AttendeeLocationsMap from "../../component/AttendeeLocationsMap";
-import SelectMeetingLocation from "../../component/SelectMeetingLocation";
+import LocationTracker from "../location/LocationTracker";
+import LocationSuggestions from "../../pages/location/LocationSuggestions";
+import AttendeeLocationsMap from "../../pages/location/AttendeeLocationsMap";
+import SelectMeetingLocation from "../location/SelectMeetingLocation";
 import LoadingSpinner from "../../component/LoadingSpinner";
-import { getMeetingById, deleteMeeting } from "../../redux/slices/meetingSlice";
+import {
+  getMeetingById,
+  deleteMeeting,
+  updateLocation,
+} from "../../redux/slices/meetingSlice";
 import {
   FaCalendarAlt,
   FaMapMarkerAlt,
@@ -24,7 +28,6 @@ import {
   FaPhoneAlt,
   FaUserPlus,
 } from "react-icons/fa";
-
 
 const MeetingDetail = () => {
   const { meetingId } = useParams();
@@ -86,11 +89,12 @@ const MeetingDetail = () => {
       toast.error("Failed to delete meeting");
     }
   };
+
   // Handle location confirmation
   const handleLocationConfirmed = async (finalLocation) => {
     try {
       await dispatch(
-        updateMeetingLocation({
+        updateLocation({
           meetingId,
           location: finalLocation,
           token,
@@ -104,9 +108,10 @@ const MeetingDetail = () => {
     }
   };
 
-   const handleLocationSelection = (suggestion) => {
-     setSelectedLocationSuggestion(suggestion);
-   };
+  const handleLocationSelection = (suggestion) => {
+    setSelectedLocationSuggestion(suggestion);
+  };
+
   // Memoized computations
   const formattedDateAndTime = useMemo(() => {
     if (!meeting) return { date: "", startTime: "", endTime: "" };
@@ -157,7 +162,7 @@ const MeetingDetail = () => {
         return "text-red-500";
       case "pending":
       default:
-        return "text-yellow-500";
+      return "text-yellow-500";
     }
   };
 
@@ -167,16 +172,16 @@ const MeetingDetail = () => {
         return <FaCheck className={`mr-2 ${getStatusColor(status)}`} />;
       case "declined":
         return <FaTimes className={`mr-2 ${getStatusColor(status)}`} />;
-      case "pending":
-      default:
+case "pending":
+default:
         return <FaQuestion className={`mr-2 ${getStatusColor(status)}`} />;
     }
-  };
+};
 
   if (loading) {
     return <LoadingSpinner />;
   }
-if (error) return <ErrorComponent error={error} navigate={navigate} />;
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -254,70 +259,6 @@ if (error) return <ErrorComponent error={error} navigate={navigate} />;
                       {formattedDateAndTime.startTime} -{" "}
                       {formattedDateAndTime.endTime}
                     </span>
-
-                    {meeting.location && (
-                      <div className="selected-location">
-                        <h3>Meeting Location</h3>
-                        <p>
-                          <strong>{meeting.location.name}</strong>
-                        </p>
-                        <p>{meeting.location.address}</p>
-                      </div>
-                    )}
-
-                    {/* Location tracking component */}
-                    <div className="location-section">
-                      <h2>Location Sharing</h2>{" "}
-                      <LocationTracker meetingId={meetingId} token={token} />
-                    </div>
-
-                    {/* Map showing all attendee locations */}
-                    <div className="map-section">
-                      <h2>Attendee Locations</h2>
-                      <AttendeeLocationsMap
-                        meetingId={meetingId}
-                        token={token}
-                        googleMapsApiKey={googleMapsApiKey}
-                      />
-                    </div>
-
-                    {/* Location suggestions */}
-                    <div className="suggestions-section">
-                      <LocationSuggestions
-                        meetingId={meetingId}
-                        token={token}
-                        onSelectLocation={handleLocationSelection}
-                      />
-                    </div>
-
-                    {/* Show the location confirmation for meeting creator only */}
-                    {isCreator && selectedLocationSuggestion && (
-                      <div className="confirm-location-section">
-                        <SelectMeetingLocation
-                          meetingId={meetingId}
-                          token={token}
-                          location={selectedLocationSuggestion}
-                          onSuccess={handleLocationConfirmed}
-                        />
-                      </div>
-                    )}
-
-                    {/* Show attendee list */}
-                    <div className="attendees-section">
-                      <h2>Attendees</h2>
-                      <ul className="attendee-list">
-                        {meeting.attendees.map((attendee) => (
-                          <li key={attendee.id} className="attendee-item">
-                            <span className="attendee-name">
-                              {attendee.name}
-                            </span>
-                            <span className={`status ${attendee.status}`}>
-                              {attendee.status}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -372,6 +313,61 @@ if (error) return <ErrorComponent error={error} navigate={navigate} />;
                   </div>
                 </div>
               )}
+
+            {/* Location tracking component */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                Location Sharing
+              </h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <LocationTracker meetingId={meetingId} token={token} />
+              </div>
+            </div>
+
+            {/* Map showing all attendee locations */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                Attendee Locations
+              </h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <AttendeeLocationsMap
+                  meetingId={meetingId}
+                  token={token}
+                  googleMapsApiKey={googleMapsApiKey}
+                />
+              </div>
+            </div>
+
+            {/* Location suggestions */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                Location Suggestions
+              </h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <LocationSuggestions
+                  meetingId={meetingId}
+                  token={token}
+                  onSelectLocation={handleLocationSelection}
+                />
+              </div>
+            </div>
+
+            {/* Show the location confirmation for meeting creator only */}
+            {isCreator && selectedLocationSuggestion && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                  Confirm Meeting Location
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <SelectMeetingLocation
+                    meetingId={meetingId}
+                    token={token}
+                    location={selectedLocationSuggestion}
+                    onSuccess={handleLocationConfirmed}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Organizer Section */}
             <div className="mb-6">
@@ -438,7 +434,7 @@ if (error) return <ErrorComponent error={error} navigate={navigate} />;
                                   {attendee.email}
                                 </div>
                               )}
-                              {attendee.phone && (
+                              {attendee.phone &&(
                                 <div className="flex items-center mt-1">
                                   <FaPhoneAlt
                                     className="mr-1 text-gray-400"
@@ -495,8 +491,7 @@ if (error) return <ErrorComponent error={error} navigate={navigate} />;
 };
 
 export default MeetingDetail;
- 
-
+              
 // import React, { useState, useEffect } from "react";
 // import axios from "axios";
 // import { useParams } from "react-router-dom";

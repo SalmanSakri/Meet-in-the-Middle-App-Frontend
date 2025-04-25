@@ -290,7 +290,7 @@ const SignUp = () => {
     if (error && submitAttempted) {
       return (
         <div
-          className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-center"
+          className="bg-red-50 text-red-600 p-2 rounded-lg mb-3 text-center"
           role="alert"
         >
           {error}
@@ -317,7 +317,7 @@ const SignUp = () => {
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-4 sm:px-6 lg:px-12 py-6 sm:py-8">
         <div className="max-w-md w-full mx-auto">
           {/* Logo/Illustration with lazy loading */}
-          <div className="flex justify-center sm:mb-6">
+          <div className="flex justify-center sm:mb-3">
             <React.Suspense
               fallback={
                 <div className="h-20 w-20 sm:h-24 sm:w-auto bg-gray-100 rounded animate-pulse"></div>

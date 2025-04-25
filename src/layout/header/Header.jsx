@@ -6,7 +6,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoIosMenu } from "react-icons/io";
 import { LuCircleUserRound } from "react-icons/lu";
-import Cookies from "js-cookie";
 
 /**
  * Header component with navigation and user controls
@@ -19,6 +18,7 @@ import Cookies from "js-cookie";
 const Header = ({ showMobileSideBar, setShowMobileSideBar, onLogoutClick }) => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Load user data from localStorage on component mount
   useEffect(() => {
@@ -64,6 +64,11 @@ const Header = ({ showMobileSideBar, setShowMobileSideBar, onLogoutClick }) => {
     setShowMobileSideBar(!showMobileSideBar);
   };
 
+  // Get the display name in correct order of priority
+  const getDisplayName = () => {
+    return userData?.fullName || userData?.name || "User";
+  };
+
   return (
     <div className="w-full h-[90px] flex justify-between items-center p-[20px] bg-white shadow-md">
       {/* Mobile Menu Toggle */}
@@ -78,9 +83,22 @@ const Header = ({ showMobileSideBar, setShowMobileSideBar, onLogoutClick }) => {
       <div className="relative hidden sm:block">
         {/* Search component can be added here */}
       </div>
-
+      {isSidebarOpen && (
+          <div className="hidden sm:block mr-4">
+            <p className="text-2xl">
+              <span className="text-2xl font-bold mr-2">Hii</span>
+              <span className="font-medium">{getDisplayName()}</span>
+              
+            </p>
+            {/* <p className="text-black ">{userData?.email || ""}</p> */}
+          </div>
+        )}
       {/* User Profile & Actions */}
-      <div className="flex space-x-6 items-center">
+      <div className="flex items-center">
+        {/* User info - visible based on sidebar state */}
+      
+
+        {/* User avatar and dropdown */}
         <div className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-2 hover:rounded-lg">
           {userData?.image ? (
             <img
@@ -93,17 +111,16 @@ const Header = ({ showMobileSideBar, setShowMobileSideBar, onLogoutClick }) => {
           )}
 
           <select
-            className="outline-none p-2 text-lg bg-transparent cursor-pointer"
+            className="outline-none p-2 text-gray-700 bg-transparent cursor-pointer appearance-none"
             onChange={handleProfileAction}
             value=""
           >
             <option value="" disabled>
-              {userData?.fullName || "User"}
+              <p className="text-2xl font-bold mr-1">{userData?.email || "Hii"}</p>
+              {/* {getDisplayName()} */}
             </option>
             <option value="profile">Profile</option>
-            <option value="logout" onClick={onLogoutClick}>
-              Logout
-            </option>
+            <option value="logout">Logout</option>
           </select>
         </div>
       </div>

@@ -244,7 +244,7 @@ const CreateMeeting = () => {
                   timeFormat="HH:mm"
                   timeIntervals={15}
                   timeCaption="Time"
-                  dateFormat="MMMM d, yyyy h:mm aa"
+                  dateFormat="d-MMMM-yyyy, h:mm aa"
                   minDate={new Date()}
                   className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -260,7 +260,7 @@ const CreateMeeting = () => {
                   timeFormat="HH:mm"
                   timeIntervals={15}
                   timeCaption="Time"
-                  dateFormat="MMMM d, yyyy h:mm aa"
+                  dateFormat="d-MMMM-yyyy, h:mm aa"
                   minDate={formData.startTime}
                   className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />

@@ -5,7 +5,9 @@ import { FaArrowLeft } from "react-icons/fa";
 import { IoCalendarOutline, IoLogOut } from "react-icons/io5";
 import { MdDashboard } from "react-icons/md";
 import { TbMessages } from "react-icons/tb";
+import { IoMdCreate } from "react-icons/io";
 import { BiMap } from "react-icons/bi";
+import { RiAdminFill } from "react-icons/ri";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 
@@ -48,9 +50,7 @@ const Sidebar = () => {
               collapsed ? "hidden" : "block"
             } text-lg flex flex-col py-2`}
           >
-            <span>Meeting</span>
-            <span>Planner</span>
-            <span>Pro</span>
+            <span>Meeting Pro</span>
           </h1>
           <span
             onClick={toggleCollapsed}
@@ -88,7 +88,7 @@ const Sidebar = () => {
           </NavLink>
 
           {/* Meetings Link */}
-          <NavLink
+          {/* <NavLink
             to="/meetings"
             className={({ isActive }) =>
               `flex cursor-pointer space-x-3 items-center text-base shadow-sm rounded-lg px-3 py-2 font-medium border 
@@ -106,28 +106,7 @@ const Sidebar = () => {
             <p className={`${collapsed ? "hidden" : "block"} truncate`}>
               Meetings
             </p>
-          </NavLink>
-
-          {/* Location Suggestions Link */}
-          <NavLink
-            to="/LocationSuggestions"
-            className={({ isActive }) =>
-              `flex cursor-pointer space-x-3 items-center text-base shadow-sm rounded-lg px-3 py-2 font-medium border 
-              border-gray-300 transition-all duration-200
-              ${
-                isActive
-                  ? "bg-blue-100 text-blue-600 shadow-md"
-                  : "bg-gray-50 text-blue-500 hover:bg-blue-50"
-              }`
-            }
-          >
-            <span className="text-xl">
-              <BiMap />
-            </span>
-            <p className={`${collapsed ? "hidden" : "block"} truncate`}>
-              Locations
-            </p>
-          </NavLink>
+          </NavLink> */}
 
           {/* CreateMeeting Link */}
           <NavLink
@@ -143,14 +122,14 @@ const Sidebar = () => {
             }
           >
             <span className="text-xl">
-              <BiMap />
+              <IoMdCreate />
             </span>
             <p className={`${collapsed ? "hidden" : "block"} truncate`}>
               CreateMeeting
             </p>
           </NavLink>
           {/* Messages Link */}
-          <NavLink
+          {/* <NavLink
             to="/messages"
             className={({ isActive }) =>
               `flex cursor-pointer space-x-3 items-center text-base shadow-sm rounded-lg px-3 py-2 font-medium border 
@@ -168,11 +147,11 @@ const Sidebar = () => {
             <p className={`${collapsed ? "hidden" : "block"} truncate`}>
               Messages
             </p>
-          </NavLink>
+          </NavLink> */}
 
           {/* Admin deshbord */}
           <NavLink
-            to="/admin-singup"
+            to="/admin/singup"
             className={({ isActive }) =>
               `flex cursor-pointer space-x-3 items-center text-base shadow-sm rounded-lg px-3 py-2 font-medium border 
               border-gray-300 transition-all duration-200
@@ -184,7 +163,7 @@ const Sidebar = () => {
             }
           >
             <span className="text-xl">
-              <MdDashboard />
+              <RiAdminFill />
             </span>
             <p className={`${collapsed ? "hidden" : "block"} truncate`}>
               Admin Dashboard

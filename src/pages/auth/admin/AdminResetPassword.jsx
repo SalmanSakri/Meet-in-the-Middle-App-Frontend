@@ -1,261 +1,177 @@
-// // src/components/ResetPassword.jsx
-// import React, { useState } from "react";
-// import { useParams, useNavigate } from "react-router-dom";
-// import { resetPassword } from "../../../services/adminAuthService";
-
-// const AdminResetPassword = () => {
-//   const { userId } = useParams();
-//   const [otp, setOtp] = useState("");
-//   const [newPassword, setNewPassword] = useState("");
-//   const [confirmPassword, setConfirmPassword] = useState("");
-//   const [error, setError] = useState(null);
-//   const [loading, setLoading] = useState(false);
-//   const navigate = useNavigate();
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setError(null);
-
-//     if (newPassword !== confirmPassword) {
-//       setError("Passwords don't match");
-//       return;
-//     }
-
-//     if (newPassword.length < 8) {
-//       setError("Password must be at least 8 characters");
-//       return;
-//     }
-
-//     setLoading(true);
-//     try {
-//       await resetPassword(userId, otp, newPassword);
-//       alert(
-//         "Password reset successful! You can now login with your new password."
-//       );
-//       navigate("/login");
-//     } catch (err) {
-//       setError(err.response?.data?.message || "Password reset failed");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-//       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-//         <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-//           Reset Your Password
-//         </h2>
-
-//         {error && (
-//           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-//             {error}
-//           </div>
-//         )}
-
-//         <form onSubmit={handleSubmit}>
-//           <div className="mb-4">
-//             <label
-//               className="block text-gray-700 text-sm font-bold mb-2"
-//               htmlFor="otp"
-//             >
-//               OTP Code
-//             </label>
-//             <input
-//               id="otp"
-//               type="text"
-//               placeholder="Enter OTP from email"
-//               value={otp}
-//               onChange={(e) => setOtp(e.target.value)}
-//               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-//               required
-//             />
-//           </div>
-
-//           <div className="mb-4">
-//             <label
-//               className="block text-gray-700 text-sm font-bold mb-2"
-//               htmlFor="newPassword"
-//             >
-//               New Password
-//             </label>
-//             <input
-//               id="newPassword"
-//               type="password"
-//               placeholder="Enter new password"
-//               value={newPassword}
-//               onChange={(e) => setNewPassword(e.target.value)}
-//               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-//               required
-//               minLength={8}
-//             />
-//           </div>
-
-//           <div className="mb-6">
-//             <label
-//               className="block text-gray-700 text-sm font-bold mb-2"
-//               htmlFor="confirmPassword"
-//             >
-//               Confirm Password
-//             </label>
-//             <input
-//               id="confirmPassword"
-//               type="password"
-//               placeholder="Confirm new password"
-//               value={confirmPassword}
-//               onChange={(e) => setConfirmPassword(e.target.value)}
-//               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-//               required
-//             />
-//           </div>
-
-//           <div className="flex items-center justify-between">
-//             <button
-//               type="submit"
-//               disabled={loading}
-//               className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
-//             >
-//               {loading ? "Resetting..." : "Reset Password"}
-//             </button>
-//           </div>
-//         </form>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default AdminResetPassword;
-
-
-import React, { useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
-import { useResetPasswordMutation } from "../../../services/adminApi";
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { resetPassword, resendOTP, clearError } from '../../../redux/slices/adminAuthSlice';
 
 const AdminResetPassword = () => {
-  const { userId, otp } = useParams();
+  const [formData, setFormData] = useState({
+    otp: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [countdown, setCountdown] = useState(0);
+  
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [resetPassword] = useResetPasswordMutation();
-
-  const handleSubmit = async (e) => {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const adminId = searchParams.get('id');
+  
+  const { error, isLoading } = useSelector(state => state.adminAuth);
+  
+  useEffect(() => {
+    if (!adminId) navigate('/admin/forgot-password');
+    return () => dispatch(clearError());
+  }, [adminId, navigate, dispatch]);
+  
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+  
+  const validate = () => {
+    const errors = {};
+    
+    if (!formData.otp) {
+      errors.otp = 'Verification code is required';
+    } else if (!/^\d{6}$/.test(formData.otp)) {
+      errors.otp = 'Verification code must be 6 digits';
+    }
+    
+    if (!formData.newPassword) {
+      errors.newPassword = 'New password is required';
+    } else if (formData.newPassword.length < 8) {
+      errors.newPassword = 'Password must be at least 8 characters';
+    }
+    
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your password';
+    } else if (formData.newPassword !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+  
+  const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (!newPassword || newPassword.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      setError("");
-      setMessage("");
-
-      const response = await resetPassword({
-        userId,
-        otp,
-        newPassword,
-      }).unwrap();
-
-      setMessage(response.message || "Password updated successfully");
-
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        navigate("/admin/login");
-      }, 2000);
-    } catch (err) {
-      setError(err.data?.message || "Password reset failed");
-    } finally {
-      setIsSubmitting(false);
-    }
+    if (!validate()) return;
+    
+    dispatch(resetPassword({ adminId, ...formData }))
+      .unwrap()
+      .then(() => {
+        navigate('/admin/login', { 
+          state: { message: 'Password reset successfully. Please login.' }
+        });
+      });
+  };
+  
+  const handleResendOTP = () => {
+    dispatch(resendOTP({ adminId, purpose: 'admin_password_reset' }));
+    setCountdown(60);
   };
 
   return (
-    <div className="flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Set New Password
-          </h2>
-        </div>
-
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-lg">
+        <h1 className="text-2xl font-bold text-center mb-6">Reset Password</h1>
+        
         {error && (
-          <div
-            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
-            role="alert"
-          >
-            <span className="block sm:inline">{error}</span>
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
           </div>
         )}
-
-        {message && (
-          <div
-            className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
-            role="alert"
-          >
-            <span className="block sm:inline">{message}</span>
-          </div>
-        )}
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="new-password" className="sr-only">
-                New Password
-              </label>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              Verification Code
               <input
-                id="new-password"
-                name="newPassword"
+                className={`shadow appearance-none border ${
+                  formErrors.otp ? 'border-red-500' : 'border-gray-300'
+                } rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline`}
+                type="text"
+                placeholder="Enter 6-digit code"
+                name="otp"
+                value={formData.otp}
+                onChange={(e) => setFormData({...formData, otp: e.target.value})}
+                maxLength={6}
+              />
+            </label>
+            {formErrors.otp && (
+              <p className="text-red-500 text-xs italic">{formErrors.otp}</p>
+            )}
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              New Password
+              <input
+                className={`shadow appearance-none border ${
+                  formErrors.newPassword ? 'border-red-500' : 'border-gray-300'
+                } rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline`}
                 type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="New Password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                name="newPassword"
+                value={formData.newPassword}
+                onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
               />
-            </div>
-            <div>
-              <label htmlFor="confirm-password" className="sr-only">
-                Confirm Password
-              </label>
-              <input
-                id="confirm-password"
-                name="confirmPassword"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-            </div>
+            </label>
+            {formErrors.newPassword && (
+              <p className="text-red-500 text-xs italic">{formErrors.newPassword}</p>
+            )}
           </div>
 
-          <div>
+          <div className="mb-6">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              Confirm Password
+              <input
+                className={`shadow appearance-none border ${
+                  formErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                } rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline`}
+                type="password"
+                placeholder="Confirm Password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+              />
+            </label>
+            {formErrors.confirmPassword && (
+              <p className="text-red-500 text-xs italic">{formErrors.confirmPassword}</p>
+            )}
+          </div>
+
+          <button
+            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            type="submit"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Resetting Password...' : 'Reset Password'}
+          </button>
+
+          <div className="mt-4 text-center">
             <button
-              type="submit"
-              disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              type="button"
+              className={`text-sm text-blue-500 hover:text-blue-800 ${
+                countdown > 0 ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              onClick={handleResendOTP}
+              disabled={countdown > 0 || isLoading}
             >
-              {isSubmitting ? "Updating..." : "Update Password"}
+              {countdown > 0 ? `Resend code in ${countdown}s` : 'Resend Verification Code'}
             </button>
           </div>
 
-          <div className="text-center">
+          <div className="mt-4 text-center">
             <Link
+              className="text-sm text-blue-500 hover:text-blue-800"
               to="/admin/login"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
             >
-              Back to login
+              Back to Login
             </Link>
           </div>
         </form>

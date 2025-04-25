@@ -17,6 +17,7 @@
     "date-fns": "^4.1.0",
     "env": "^0.0.2",
     "formik": "^2.4.6",
+    "instal": "^0.0.1-security",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.487.0",
     "prop-types": "^15.8.1",

@@ -1,7 +1,7 @@
 /**
  * @file Login.jsx
  * @description Login component with form validation, Redux integration, and optimized rendering
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
@@ -16,7 +16,6 @@ import LoginImage from "../../assets/login.svg";
 import AuthImg from "../../assets/auth.svg";
 
 // Email validation regex - compiled once for reuse
-// const EMAIL_REGEX = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 /**
@@ -61,6 +60,7 @@ const Login = () => {
 
   /**
    * Effect to handle navigation after successful authentication
+   * and display error messages
    */
   useEffect(() => {
     // Reset error on component mount
@@ -80,19 +80,16 @@ const Login = () => {
         toast.success("Login successful!");
       }
     }
+  }, [isAuthenticated, otpVerificationRequired, navigate, dispatch]);
 
-    // If there's a redux error, show toast notification
+  /**
+   * Effect to handle error display separately for better error management
+   */
+  useEffect(() => {
     if (error && submitAttempted) {
       toast.error(error);
     }
-  }, [
-    isAuthenticated,
-    otpVerificationRequired,
-    navigate,
-    error,
-    dispatch,
-    submitAttempted,
-  ]);
+  }, [error, submitAttempted]);
 
   /**
    * Updates form data when input fields change
@@ -175,18 +172,17 @@ const Login = () => {
         await dispatch(loginUser(formData)).unwrap();
         // Navigation is handled by useEffect
       } catch (err) {
-        // Error is handled in the redux slice
+        // Make sure we display the error message even if it's caught here
         console.error("Login dispatch error:", err);
-        // Show error toast if not shown by useEffect
-        if (err.message) {
+        if (!error && err.message) {
           toast.error(err.message);
         }
       }
     },
-    [formData, dispatch, validateForm]
+    [formData, dispatch, validateForm, error]
   );
 
-  // Memoized error message display
+  // Memoized error message display - ensuring it always shows
   const ErrorDisplay = useMemo(() => {
     // Only show redux errors here, form validation errors are shown inline
     if (error && submitAttempted) {
@@ -194,6 +190,7 @@ const Login = () => {
         <div
           className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-center"
           role="alert"
+          aria-live="assertive"
         >
           {error}
         </div>
@@ -205,41 +202,33 @@ const Login = () => {
   return (
     <div className="flex min-h-screen">
       {/* Left Side - Image Section with lazy loading */}
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-8">
-        <React.Suspense
-          fallback={<div className="w-full h-full bg-gray-200"></div>}
-        >
-          <img
-            src={LoginImage}
-            alt="Login Background"
-            className="max-w-sm w-full object-contain"
-            loading="lazy"
-            fetchpriority="low"
-          />
-        </React.Suspense>
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-8 bg-[#fdf5f6]">
+        <img
+          src={LoginImage}
+          alt="Login Background"
+          className="max-w-sm w-full object-contain"
+          loading="lazy"
+          fetchpriority="low"
+        />
       </div>
 
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-16 py-8">
         <div className="w-full max-w-md">
-          {/* Logo/Illustration with lazy loading */}
-          <div className="flex justify-center mb-6">
-            <React.Suspense
-              fallback={<div className="h-40 w-48 bg-gray-100 rounded"></div>}
-            >
-              <img
-                src={AuthImg}
-                alt="Login Illustration"
-                className="h-40 w-48"
-                loading="lazy"
-              />
-            </React.Suspense>
+          {/* Logo/Illustration */}
+          <div className="flex justify-center mb-4">
+            <img
+              src={AuthImg}
+              alt="Login Illustration"
+              className="h-40 w-48"
+              loading="lazy"
+            />
           </div>
 
           <h1 className="text-2xl font-semibold text-center mb-2">
             Login to Admin Panel
           </h1>
-          <p className="text-gray-500 mb-6 text-center">
+          <p className="text-gray-500 mb-4 text-center">
             Please enter your email and password to continue
           </p>
 
@@ -279,7 +268,7 @@ const Login = () => {
             </div>
 
             {/* Password field with toggle visibility */}
-            <div className="mb-6 relative">
+            <div className="mb-4 relative">
               <label
                 htmlFor="password"
                 className="block font-bold text-gray-700 mb-2"
@@ -328,7 +317,7 @@ const Login = () => {
             </div>
 
             {/* Forgot Password Link */}
-            <div className="flex justify-end mb-6">
+            <div className="flex justify-end mb-4">
               <Link
                 to="/forget-password"
                 className="text-[#B71B36] hover:underline text-sm font-medium"
@@ -348,7 +337,7 @@ const Login = () => {
             </button>
 
             {/* Link to Signup */}
-            <div className="mt-6 text-center">
+            <div className="mt-4 text-center">
               <p className="text-gray-600">
                 Don't have an account?{" "}
                 <Link
