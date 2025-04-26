@@ -1,7 +1,7 @@
 /**
  * @file authService.js
  * @description Authentication service with API integration and secure token management
- * @version 1.0.0
+ * @version 1.1.0
  */
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -14,7 +14,7 @@ const API_CONFIG = {
   TOKEN_EXPIRY: 7, // 7 days
   COOKIE_NAME: "authToken",
   SESSION_EMAIL_KEY: "email",
-  LOCAL_STORAGE_USER_KEY: "userData", // New constant for user data
+  LOCAL_STORAGE_USER_KEY: "userData",
 };
 
 /**
@@ -56,8 +56,12 @@ const createApiInstance = () => {
         // Clear invalid tokens
         Cookies.remove(API_CONFIG.COOKIE_NAME);
         sessionStorage.removeItem(API_CONFIG.SESSION_EMAIL_KEY);
-        localStorage.removeItem(API_CONFIG.LOCAL_STORAGE_USER_KEY); // Clear user data too
-        window.location.href = "/login";
+        localStorage.removeItem(API_CONFIG.LOCAL_STORAGE_USER_KEY);
+        
+        // Only redirect if we're in a browser environment
+        if (typeof window !== 'undefined') {
+          window.location.href = "/login";
+        }
       }
       return Promise.reject(error);
     }
@@ -86,7 +90,8 @@ const handleApiError = (error) => {
   if (error.response) {
     errorResponse.status = error.response.status;
     errorResponse.message =
-      error.response.data.message || `Error: ${error.response.status}`;
+      (error.response.data && error.response.data.message) || 
+      `Error: ${error.response.status}`;
     errorResponse.details = error.response.data;
 
     // Special handling for common error codes
@@ -102,7 +107,7 @@ const handleApiError = (error) => {
   }
   // Handle request setup errors
   else {
-    errorResponse.message = error.message;
+    errorResponse.message = error.message || "Unknown error occurred";
   }
 
   // Log error for debugging but avoid sensitive data
@@ -123,6 +128,8 @@ const dataManager = {
    * @param {string} token - JWT token
    */
   setToken: (token) => {
+    if (!token) return;
+    
     Cookies.set(API_CONFIG.COOKIE_NAME, token, {
       expires: API_CONFIG.TOKEN_EXPIRY,
       secure: true,
@@ -168,10 +175,14 @@ const dataManager = {
       // Add other non-sensitive fields as needed
     };
 
-    localStorage.setItem(
-      API_CONFIG.LOCAL_STORAGE_USER_KEY,
-      JSON.stringify(sanitizedUserData)
-    );
+    try {
+      localStorage.setItem(
+        API_CONFIG.LOCAL_STORAGE_USER_KEY,
+        JSON.stringify(sanitizedUserData)
+      );
+    } catch (e) {
+      console.error("Failed to store user data:", e);
+    }
   },
 
   /**
@@ -184,6 +195,8 @@ const dataManager = {
       return userData ? JSON.parse(userData) : null;
     } catch (error) {
       console.error("Error parsing user data:", error);
+      // Clear invalid data
+      localStorage.removeItem(API_CONFIG.LOCAL_STORAGE_USER_KEY);
       return null;
     }
   },
@@ -213,7 +226,7 @@ const authService = {
         throw new Error("Missing required registration fields");
       }
 
-      // Send registration request - fixed typo in endpoint URL from "singup" to "signup"
+      // Send registration request
       const response = await api.post("/signup", userData);
 
       return { success: true, data: response.data };
@@ -241,7 +254,7 @@ const authService = {
       const response = await api.post("/login", credentials);
 
       // Store auth token securely using token manager
-      if (response.data.token) {
+      if (response.data && response.data.token) {
         dataManager.setToken(response.data.token);
 
         // Store user data in localStorage
@@ -271,19 +284,54 @@ const authService = {
    */
   verifyOTP: async (userId, otp, purpose = "verification") => {
     try {
+      // Validate required parameters
+      if (!userId || !otp) {
+        throw new Error("User ID and OTP code are required");
+      }
+
       // Send OTP verification request
       const response = await api.post("/verify-otp", { userId, otp, purpose });
 
       // Store auth token if provided after verification
-      if (response.data.token) {
+      if (response.data && response.data.token) {
         dataManager.setToken(response.data.token);
       }
 
       // Store user data if provided
-      if (response.data.user) {
+      if (response.data && response.data.user) {
         dataManager.setUserData(response.data.user);
       }
 
+      return { success: true, data: response.data };
+    } catch (error) {
+      return {
+        success: false,
+        error: handleApiError(error),
+      };
+    }
+  },
+  
+  /**
+   * Resend OTP code to the user
+   * @param {string} userId - User ID
+   * @param {string} purpose - Purpose of OTP (verification or password_reset)
+   * @returns {Promise} - API response or error
+   */
+  resendOTP: async (userId, purpose = "verification") => {
+    try {
+      // Validate required parameters
+      if (!userId) {
+        throw new Error("User ID is required");
+      }
+      
+      // Validate purpose
+      const validPurposes = ["verification", "password_reset"];
+      if (!validPurposes.includes(purpose)) {
+        throw new Error("Invalid purpose. Must be 'verification' or 'password_reset'");
+      }
+
+      // Send resend OTP request
+      const response = await api.post("/resend-otp", { userId, purpose });
       return { success: true, data: response.data };
     } catch (error) {
       return {
@@ -306,7 +354,7 @@ const authService = {
       }
 
       // Send password reset request
-      const response = await api.post("/forgot-password", { email });
+      const response = await api.post("/request-password-reset", { email });
       return { success: true, data: response.data };
     } catch (error) {
       return {
@@ -316,26 +364,21 @@ const authService = {
     }
   },
 
-  /**
-   * Reset password with token
-   * @param {string} token - Reset token
-   * @param {string} password - New password
-   * @returns {Promise} - API response or error
-   */
-  resetPassword: async (token, password) => {
+
+  resetPassword: async (userId, otp, newPassword) => {
     try {
       // Validate inputs before sending
-      if (!token || !password) {
-        throw new Error("Token and password are required");
+      if (!userId || !otp || !newPassword) {
+        throw new Error("User ID, OTP, and new password are required");
       }
-
+  
       // Password strength validation
-      if (password.length < 6) {
+      if (newPassword.length < 6) {
         throw new Error("Password must be at least 6 characters");
       }
-
+  
       // Send reset request
-      const response = await api.post("/reset-password", { token, password });
+      const response = await api.post("/reset-password", { userId, otp, newPassword });
       return { success: true, data: response.data };
     } catch (error) {
       return {

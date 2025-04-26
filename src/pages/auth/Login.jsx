@@ -1,7 +1,7 @@
 /**
  * @file Login.jsx
  * @description Login component with form validation, Redux integration, and optimized rendering
- * @version 1.1.0
+ * @version 1.2.0
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
@@ -65,22 +65,18 @@ const Login = () => {
   useEffect(() => {
     // Reset error on component mount
     dispatch(resetError());
-
-    // If authenticated, navigate based on OTP requirement
+    
+    // Navigation logic after authentication
     if (isAuthenticated) {
+      // If OTP verification is required, navigate to OTP page
       if (otpVerificationRequired) {
-        // Navigate to OTP verification page
-        navigate("/verify-otp");
-        toast.info(
-          "Please verify your account with the OTP sent to your email"
-        );
+        navigate("/otp-verification");
       } else {
-        // Navigate to dashboard - fully authenticated
+        // Otherwise, navigate to dashboard
         navigate("/layout");
-        toast.success("Login successful!");
       }
     }
-  }, [isAuthenticated, otpVerificationRequired, navigate, dispatch]);
+  }, [dispatch, isAuthenticated, otpVerificationRequired, navigate]);
 
   /**
    * Effect to handle error display separately for better error management
@@ -166,7 +162,7 @@ const Login = () => {
       if (!validateForm()) {
         return;
       }
-
+      
       try {
         // Dispatch login action to redux
         await dispatch(loginUser(formData)).unwrap();
@@ -174,30 +170,13 @@ const Login = () => {
       } catch (err) {
         // Make sure we display the error message even if it's caught here
         console.error("Login dispatch error:", err);
-        if (!error && err.message) {
+        if (err?.message) {
           toast.error(err.message);
         }
       }
     },
-    [formData, dispatch, validateForm, error]
+    [formData, dispatch, validateForm]
   );
-
-  // Memoized error message display - ensuring it always shows
-  const ErrorDisplay = useMemo(() => {
-    // Only show redux errors here, form validation errors are shown inline
-    if (error && submitAttempted) {
-      return (
-        <div
-          className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-center"
-          role="alert"
-          aria-live="assertive"
-        >
-          {error}
-        </div>
-      );
-    }
-    return null;
-  }, [error, submitAttempted]);
 
   return (
     <div className="flex min-h-screen">
@@ -233,7 +212,15 @@ const Login = () => {
           </p>
 
           {/* Display error messages from Redux */}
-          {ErrorDisplay}
+          {error && submitAttempted && (
+            <div
+              className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-center"
+              role="alert"
+              aria-live="assertive"
+            >
+              {error}
+            </div>
+          )}
 
           {/* Login Form with improved validation and accessibility */}
           <form onSubmit={handleLogin} noValidate>

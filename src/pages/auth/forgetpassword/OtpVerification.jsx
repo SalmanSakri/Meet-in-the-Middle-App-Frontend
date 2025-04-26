@@ -1,8 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { verifyOTP } from "../../../redux/slices/authSlice";
+import { verifyOTP, resendOTP } from "../../../redux/slices/authSlice";
 import LoginImage from "../../../assets/login.svg";
+import { toast } from "react-toastify";
+
 /**
  * OTP Verification Component
  * Handles user email verification with OTP code
@@ -17,6 +19,8 @@ const OtpVerification = () => {
   // OTP input state
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [formError, setFormError] = useState("");
+  const [resendDisabled, setResendDisabled] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   /**
    * Check if user ID exists, redirect to signup if not
@@ -26,6 +30,24 @@ const OtpVerification = () => {
       navigate("/");
     }
   }, [user, navigate]);
+
+  /**
+   * Countdown timer for OTP resend cooldown
+   */
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+    } else {
+      setResendDisabled(false);
+    }
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [countdown]);
 
   /**
    * Handle input change in OTP fields
@@ -78,54 +100,65 @@ const OtpVerification = () => {
       return;
     }
 
- try {
-   const resultAction = await dispatch(
-     verifyOTP({
-       userId: user.id,
-       otp: otpValue,
-       purpose: "verification",
-     })
-   ).unwrap();
+    try {
+      const resultAction = await dispatch(
+        verifyOTP({
+          userId: user.id,
+          otp: otpValue,
+          purpose: "verification", // This matches the backend's expected value
+        })
+      ).unwrap();
 
-   // OTP verified successfully - redirect to dashboard
-   navigate("/layout");
- } catch (err) {
-   console.error("OTP verification error:", err);
-   setFormError(err.message || "Verification failed. Please try again.");
- }
+      // OTP verified successfully - redirect to dashboard
+      toast.success("Email verified successfully!");
+      navigate("/layout");
+    } catch (err) {
+      console.error("OTP verification error:", err);
+      setFormError(err || "Verification failed. Please try again.");
+    }
   };
 
   /**
    * Request a new OTP code
    */
   const handleResendOTP = async () => {
-    // Implementation would depend on your backend API
-    // You may need to create a new Redux action for this
+    if (resendDisabled) return;
+    
+    setResendDisabled(true);
+    
     try {
-      // Example API call
-      // await dispatch(resendOTP(user.id));
-      alert("A new verification code has been sent to your email.");
+      await dispatch(resendOTP({
+        userId: user.id,
+        purpose: "verification" // This matches the backend's expected value
+      })).unwrap();
+      
+      toast.success("A new verification code has been sent to your email.");
+      
+      // Start cooldown timer (60 seconds)
+      setCountdown(60);
     } catch (err) {
       console.error("Error resending OTP:", err);
+      toast.error(err || "Failed to resend verification code");
+      setResendDisabled(false);
     }
   };
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-full">
       {/* Left Side - Image Section */}
-        <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-8">
-              <React.Suspense
-                fallback={<div className="w-full h-full bg-gray-200"></div>}
-              >
-                <img
-                  src={LoginImage}
-                  alt="Login Background"
-                  className="max-w-sm w-full object-contain "
-                  loading="lazy"
-                  fetchpriority="low"
-                />
-              </React.Suspense>
-            </div>
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-8">
+        <React.Suspense
+          fallback={<div className="w-full h-full bg-gray-200"></div>}
+        >
+          <img
+            src={LoginImage}
+            alt="Login Background"
+            className="max-w-sm w-full object-contain"
+            loading="lazy"
+            fetchpriority="low"
+          />
+        </React.Suspense>
+      </div>
 
       {/* Right Side - OTP Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 sm:px-8 lg:px-16 py-8">
@@ -198,11 +231,21 @@ const OtpVerification = () => {
             </button>
 
             <div className="text-center">
-              <p className="text-gray-600 mb-2">Didn't receive the code?</p>
+              <p className="text-gray-600 mb-2">
+                Didn't receive the code?
+                {countdown > 0 && (
+                  <span className="ml-1 text-gray-500">
+                    Resend in {countdown}s
+                  </span>
+                )}
+              </p>
               <button
                 type="button"
                 onClick={handleResendOTP}
-                className="text-[#B71B36] hover:underline font-medium"
+                className={`text-[#B71B36] hover:underline font-medium ${
+                  resendDisabled ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                disabled={resendDisabled}
               >
                 Resend Code
               </button>

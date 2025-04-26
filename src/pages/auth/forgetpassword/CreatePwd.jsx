@@ -1,742 +1,493 @@
-// import React, { useState, useEffect } from "react";
-// import { useNavigate, Link } from "react-router-dom";
-// import { toast } from "react-toastify";
-
-// const CreatePassword = () => {
-//   const navigate = useNavigate();
-
-//   // Form state
-//   const [formData, setFormData] = useState({
-//     otp: "",
-//     newPassword: "",
-//     confirmPassword: "",
-//   });
-
-//   // UI state
-//   const [showNewPassword, setShowNewPassword] = useState(false);
-//   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-//   const [loading, setLoading] = useState(false);
-//   const [errors, setErrors] = useState({});
-
-//   // Get email from session storage (set during ForgetPassword component)
-//   const resetEmail = sessionStorage.getItem("resetEmail");
-//   const userId = sessionStorage.getItem("resetUserId");
-
-//   /**
-//    * Updates form data when input fields change
-//    * @param {Object} e - Event object
-//    */
-//   const handleChange = (e) => {
-//     const { name, value } = e.target;
-//     setFormData({ ...formData, [name]: value });
-
-//     // Clear error when field is modified
-//     if (errors[name]) {
-//       setErrors({ ...errors, [name]: "" });
-//     }
-//   };
-
-//   /**
-//    * Validates form fields
-//    * @returns {boolean} - True if validation passes, false otherwise
-//    */
-//   const validateForm = () => {
-//     const newErrors = {};
-
-//     // OTP validation
-//     if (!formData.otp.trim()) {
-//       newErrors.otp = "OTP is required";
-//     } else if (formData.otp.length !== 6 || !/^\d+$/.test(formData.otp)) {
-//       newErrors.otp = "OTP must be 6 digits";
-//     }
-
-//     // Password validation
-//     if (!formData.newPassword) {
-//       newErrors.newPassword = "Password is required";
-//     } else if (formData.newPassword.length < 6) {
-//       newErrors.newPassword = "Password must be at least 6 characters";
-//     }
-
-//     // Confirm password validation
-//     if (!formData.confirmPassword) {
-//       newErrors.confirmPassword = "Please confirm your password";
-//     } else if (formData.newPassword !== formData.confirmPassword) {
-//       newErrors.confirmPassword = "Passwords don't match";
-//     }
-
-//     setErrors(newErrors);
-//     return Object.keys(newErrors).length === 0;
-//   };
-
-//   /**
-//    * Handles form submission for password reset
-//    * @param {Object} e - Event object
-//    */
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-
-//     // Validate form before submission
-//     if (!validateForm()) {
-//       return;
-//     }
-
-//     setLoading(true);
-
-//     try {
-//       // API request to reset password with OTP
-//       const response = await fetch(
-//         "https://auth-banckend.onrender.com/api/auth/reset-password",
-//         {
-//           method: "POST",
-//           body: JSON.stringify({
-//             userId: userId,
-//             otp: formData.otp,
-//             newPassword: formData.newPassword,
-//           }),
-//           headers: {
-//             "Content-Type": "application/json",
-//             Accept: "application/json",
-//           },
-//         }
-//       );
-
-//       const data = await response.json();
-
-//       if (!response.ok) {
-//         throw new Error(data.message || "Password reset failed");
-//       }
-
-//       // Clear reset data from session storage
-//       sessionStorage.removeItem("resetEmail");
-//       sessionStorage.removeItem("resetUserId");
-
-//       // Show success message
-//       toast.success("Password reset successful!");
-
-//       // Navigate to login page
-//       navigate("/login");
-//     } catch (error) {
-//       toast.error(error.message || "Failed to reset password");
-//       console.error("Password reset error:", error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // Redirect if no email is found (user didn't go through the proper flow)
-//   useEffect(() => {
-//     if (!resetEmail || !userId) {
-//       toast.error("Please request a password reset first");
-//       navigate("/forget-password");
-//     }
-//   }, [resetEmail, userId, navigate]);
-
-//   return (
-//     <div className="flex flex-col md:flex-row h-screen w-full">
-//       <div className="w-full  flex items-center justify-center px-6 sm:px-10 lg:px-16 py-8">
-//         <div className="w-2xl ">
-//           <form className="px-14" onSubmit={handleSubmit}>
-//             <h2 className="text-2xl font-semibold text-center mb-4">
-//               Reset Password
-//             </h2>
-//             <p className="mb-8 text-gray-700 font-medium text-center">
-//               Please enter the OTP sent to {resetEmail} and create your new
-//               password.
-//             </p>
-//             {/* OTP Field */}
-//             <div className="mb-4">
-//               <label
-//                 htmlFor="otp"
-//                 className="block mb-2 text-sm font-medium text-gray-700"
-//               >
-//                 Verification Code (OTP)
-//               </label>
-//               <input
-//                 id="otp"
-//                 name="otp"
-//                 type="text"
-//                 className={`w-full px-3 py-2 border ${
-//                   errors.otp ? "border-red-500" : "border-gray-300"
-//                 } rounded-md focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50 bg-gray-100`}
-//                 placeholder="Enter 6-digit OTP"
-//                 maxLength={6}
-//                 value={formData.otp}
-//                 onChange={handleChange}
-//               />
-//               {errors.otp && (
-//                 <p className="text-red-500 text-sm mt-1">{errors.otp}</p>
-//               )}
-//             </div>
-
-//             {/* New Password Field */}
-//             <div className="mb-4">
-//               <label
-//                 htmlFor="newPassword"
-//                 className="block mb-2 text-sm font-medium text-gray-700"
-//               >
-//                 New Password
-//               </label>
-//               <div className="relative">
-//                 <input
-//                   id="newPassword"
-//                   name="newPassword"
-//                   type={showNewPassword ? "text" : "password"}
-//                   className={`w-full px-3 py-2 border ${
-//                     errors.newPassword ? "border-red-500" : "border-gray-300"
-//                   } rounded-md focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50 bg-gray-100`}
-//                   placeholder="Enter New Password"
-//                   value={formData.newPassword}
-//                   onChange={handleChange}
-//                 />
-//                 <button
-//                   type="button"
-//                   className="absolute inset-y-0 right-8 flex items-center px-5 text-gray-400 "
-//                   onClick={() => setShowNewPassword(!showNewPassword)}
-//                 >
-//                   {showNewPassword ? (
-//                     <svg
-//                       className="w-5 h-5"
-//                       fill="none"
-//                       stroke="currentColor"
-//                       viewBox="0 0 24 24"
-//                       xmlns="http://www.w3.org/2000/svg"
-//                     >
-//                       <path
-//                         strokeLinecap="round"
-//                         strokeLinejoin="round"
-//                         strokeWidth="2"
-//                         d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-//                       ></path>
-//                     </svg>
-//                   ) : (
-//                     <svg
-//                       className="w-5 h-5"
-//                       fill="none"
-//                       stroke="currentColor"
-//                       viewBox="0 0 24 24"
-//                       xmlns="http://www.w3.org/2000/svg"
-//                     >
-//                       <path
-//                         strokeLinecap="round"
-//                         strokeLinejoin="round"
-//                         strokeWidth="2"
-//                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-//                       ></path>
-//                       <path
-//                         strokeLinecap="round"
-//                         strokeLinejoin="round"
-//                         strokeWidth="2"
-//                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-//                       ></path>
-//                     </svg>
-//                   )}
-//                 </button>
-//               </div>
-//               {errors.newPassword && (
-//                 <p className="text-red-500 text-sm mt-1">
-//                   {errors.newPassword}
-//                 </p>
-//               )}
-//             </div>
-
-//             {/* Confirm Password Field */}
-//             <div className="mb-6">
-//               <label
-//                 htmlFor="confirmPassword"
-//                 className="block mb-2 text-sm font-medium text-gray-700"
-//               >
-//                 Confirm Password
-//               </label>
-//               <div className="relative">
-//                 <input
-//                   id="confirmPassword"
-//                   type={showConfirmPassword ? "text" : "password"}
-//                   name="confirmPassword"
-//                   className={`w-full px-3 py-2 border ${
-//                     errors.confirmPassword
-//                       ? "border-red-500"
-//                       : "border-gray-300"
-//                   } rounded-md focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50 bg-gray-100`}
-//                   placeholder="Confirm Password"
-//                   value={formData.confirmPassword}
-//                   onChange={handleChange}
-//                 />
-//                 <button
-//                   type="button"
-//                   className="absolute inset-y-0  right-8 flex items-center px-3 text-gray-400"
-//                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-//                 >
-//                   {showConfirmPassword ? (
-//                     <svg
-//                       className="w-5 h-5"
-//                       fill="none"
-//                       stroke="currentColor"
-//                       viewBox="0 0 24 24"
-//                       xmlns="http://www.w3.org/2000/svg"
-//                     >
-//                       <path
-//                         strokeLinecap="round"
-//                         strokeLinejoin="round"
-//                         strokeWidth="2"
-//                         d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-//                       ></path>
-//                     </svg>
-//                   ) : (
-//                     <svg
-//                       className="w-5 h-5"
-//                       fill="none"
-//                       stroke="currentColor"
-//                       viewBox="0 0 24 24"
-//                       xmlns="http://www.w3.org/2000/svg"
-//                     >
-//                       <path
-//                         strokeLinecap="round"
-//                         strokeLinejoin="round"
-//                         strokeWidth="2"
-//                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-//                       ></path>
-//                       <path
-//                         strokeLinecap="round"
-//                         strokeLinejoin="round"
-//                         strokeWidth="2"
-//                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-//                       ></path>
-//                     </svg>
-//                   )}
-//                 </button>
-//               </div>
-//               {errors.confirmPassword && (
-//                 <p className="text-red-500 text-sm mt-1">
-//                   {errors.confirmPassword}
-//                 </p>
-//               )}
-//             </div>
-
-//             {/* Submit Button */}
-//             <button
-//               type="submit"
-//               className="w-full py-3 font-medium text-white bg-[#B71B36] rounded-md hover:bg-[#a01830] focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50 disabled:bg-[#d88a97] disabled:cursor-not-allowed pb-4"
-//               disabled={loading}
-//             >
-//               {loading ? (
-//                 <span className="flex items-center justify-center">
-//                   <svg
-//                     className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-//                     xmlns="http://www.w3.org/2000/svg"
-//                     fill="none"
-//                     viewBox="0 0 24 24"
-//                   >
-//                     <circle
-//                       className="opacity-25"
-//                       cx="12"
-//                       cy="12"
-//                       r="10"
-//                       stroke="currentColor"
-//                       strokeWidth="4"
-//                     ></circle>
-//                     <path
-//                       className="opacity-75"
-//                       fill="currentColor"
-//                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-//                     ></path>
-//                   </svg>
-//                   Processing...
-//                 </span>
-//               ) : (
-//                 "Create New Password"
-//               )}
-//             </button>
-
-//             {/* Back to Login Link */}
-//             <div className="text-center mt-12">
-//               <Link
-//                 to="/login"
-//                 className="text-[#B71B36] hover:underline font-medium"
-//               >
-//                 Back to Login
-//               </Link>
-//             </div>
-//           </form>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default CreatePassword;
-
-
-
-
-import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
+// CreatePassword.jsx
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { resetPassword, resetError, resendOTP, clearPasswordResetData } from "../../../redux/slices/authSlice";
 import { toast } from "react-toastify";
-import { checkPasswordStrength } from "../../../utils/validationUtils";
+import AuthImage from "../../../assets/auth.svg";
 
+/**
+ * CreatePassword Component
+ * Handles password reset flow with OTP verification
+ */
 const CreatePassword = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const location = useLocation();
+  
+  // Create ref for first OTP input for focus management
+  const firstOtpRef = useRef(null);
+  
+  // Get auth state from Redux
+  const { 
+    isLoading, 
+    error, 
+    passwordResetSuccess,
+    passwordResetUserId,
+    passwordResetEmail
+  } = useSelector((state) => state.auth);
 
   // Form state
-  const [formData, setFormData] = useState({
-    otp: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-
-  // UI state
-  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [otp, setOtp] = useState(Array(6).fill(""));
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [localError, setLocalError] = useState("");
+  const [resendDisabled, setResendDisabled] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
+  
+  // Password validation state
   const [passwordStrength, setPasswordStrength] = useState({
-    score: 0,
-    message: "",
+    length: false,
+    hasNumber: false,
+    hasSpecialChar: false
   });
-
-  // Get email from session storage (set during ForgetPassword component)
-  const resetEmail = sessionStorage.getItem("resetEmail");
-  const userId = sessionStorage.getItem("resetUserId");
+  
+  /**
+   * Effect to redirect after successful password reset
+   */
+  useEffect(() => {
+    if (passwordResetSuccess) {
+      toast.success("Password reset successful! Please login with your new password.");
+      // Clear sensitive data before redirecting
+      dispatch(clearPasswordResetData());
+      navigate("/login");
+    }
+  }, [passwordResetSuccess, navigate, dispatch]);
 
   /**
-   * Updates form data when input fields change
+   * Check if we have the necessary data to reset password
+   * Either from Redux state or URL query parameters
+   */
+  useEffect(() => {
+    // Try to get data from URL query params if missing in Redux state
+    const searchParams = new URLSearchParams(location.search);
+    const userIdFromUrl = searchParams.get("userId");
+    const emailFromUrl = searchParams.get("email");
+    
+    if (!passwordResetUserId && !userIdFromUrl) {
+      toast.error("Missing information to reset password");
+      navigate("/forget-password");
+      return;
+    }
+    
+    // Focus first OTP input when component mounts
+    if (firstOtpRef.current) {
+      setTimeout(() => firstOtpRef.current.focus(), 100);
+    }
+    
+    // Cleanup function to clear password reset data when unmounting
+    return () => {
+      if (passwordResetSuccess) {
+        dispatch(clearPasswordResetData());
+      }
+    };
+  }, [passwordResetUserId, passwordResetEmail, navigate, location.search, dispatch]);
+
+  /**
+   * Countdown timer for OTP resend cooldown
+   */
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+    } else {
+      setResendDisabled(false);
+    }
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [countdown]);
+
+  /**
+   * Reset OTP fields and focus on first input
+   * @param {boolean} shouldFocus - Whether to focus the first input
+   */
+  const resetOtpFields = (shouldFocus = true) => {
+    setOtp(Array(6).fill(""));
+    if (shouldFocus && firstOtpRef.current) {
+      setTimeout(() => {
+        firstOtpRef.current.focus();
+      }, 10);
+    }
+  };
+
+  /**
+   * Handle OTP input change
+   * @param {number} index - OTP digit index
+   * @param {string} value - New value
+   */
+  const handleOtpChange = (index, value) => {
+    // Allow only numbers
+    if (value && !/^\d+$/.test(value)) {
+      return;
+    }
+
+    // Update OTP state
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  /**
+   * Handle key press in OTP fields
+   * @param {number} index - Field index
+   * @param {Object} e - Key event
+   */
+  const handleKeyDown = (index, e) => {
+    // On backspace, go to previous field if current is empty
+    if (e.key === "Backspace") {
+      if (!otp[index] && index > 0) {
+        const prevInput = document.getElementById(`otp-${index - 1}`);
+        if (prevInput) {
+          prevInput.focus();
+          // Optionally clear the previous field
+          const newOtp = [...otp];
+          newOtp[index - 1] = "";
+          setOtp(newOtp);
+        }
+      } else if (otp[index] && index >= 0) {
+        // Clear current field on backspace when it has content
+        const newOtp = [...otp];
+        newOtp[index] = "";
+        setOtp(newOtp);
+      }
+    }
+    
+    // On arrow left/right, navigate between fields
+    if (e.key === "ArrowLeft" && index > 0) {
+      document.getElementById(`otp-${index - 1}`).focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      document.getElementById(`otp-${index + 1}`).focus();
+    }
+  };
+
+  /**
+   * Handle pasting OTP code
+   * @param {Object} e - Paste event
+   */
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text/plain').trim();
+    
+    // If it's a 6-digit number, fill all fields
+    if (/^\d{6}$/.test(pastedData)) {
+      const digits = pastedData.split('');
+      setOtp(digits);
+      
+      // Focus the last field
+      document.getElementById('otp-5').focus();
+    }
+  };
+
+  /**
+   * Check password strength and update indicators
+   * @param {string} newPassword - Password to validate
+   */
+  const checkPasswordStrength = (newPassword) => {
+    setPasswordStrength({
+      length: newPassword.length >= 6,
+      hasNumber: /\d/.test(newPassword),
+      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
+    });
+  };
+
+  /**
+   * Handle password input change
    * @param {Object} e - Event object
    */
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-
-    // Update password strength when password changes
-    if (name === "newPassword") {
-      setPasswordStrength(checkPasswordStrength(value));
-    }
-
+  const handlePasswordChange = (e) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    checkPasswordStrength(newPassword);
+    
     // Clear error when field is modified
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: "" });
-    }
+    if (localError) setLocalError("");
+    if (error) dispatch(resetError());
   };
 
   /**
-   * Validates form fields
-   * @returns {boolean} - True if validation passes, false otherwise
+   * Handle confirm password input change
+   * @param {Object} e - Event object
+   */
+  const handleConfirmPasswordChange = (e) => {
+    setConfirmPassword(e.target.value);
+    
+    // Clear error when field is modified
+    if (localError) setLocalError("");
+    if (error) dispatch(resetError());
+  };
+
+  /**
+   * Validate the reset password form
+   * @returns {boolean} - True if valid, false otherwise
    */
   const validateForm = () => {
-    const newErrors = {};
-
-    // OTP validation
-    if (!formData.otp.trim()) {
-      newErrors.otp = "OTP is required";
-    } else if (formData.otp.length !== 6 || !/^\d+$/.test(formData.otp)) {
-      newErrors.otp = "OTP must be 6 digits";
+    // Clear previous errors
+    setLocalError("");
+    
+    // Check OTP
+    const otpValue = otp.join("");
+    if (otpValue.length !== 6) {
+      setLocalError("Please enter all 6 OTP digits");
+      return false;
     }
 
-    // Password validation - enhanced similar to SignUp
-    if (!formData.newPassword) {
-      newErrors.newPassword = "Password is required";
-    } else if (formData.newPassword.length < 6) {
-      newErrors.newPassword = "Password must be at least 6 characters";
-    } else if (passwordStrength.score < 2) {
-      newErrors.newPassword = "Please choose a stronger password";
+    // Check password
+    if (!password) {
+      setLocalError("Password is required");
+      return false;
+    }
+    
+    if (password.length < 6) {
+      setLocalError("Password must be at least 6 characters");
+      return false;
+    }
+    
+    if (!/\d/.test(password)) {
+      setLocalError("Password must contain at least one number");
+      return false;
+    }
+    
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      setLocalError("Password must contain at least one special character");
+      return false;
     }
 
-    // Confirm password validation
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords don't match";
+    // Check password match
+    if (password !== confirmPassword) {
+      setLocalError("Passwords do not match");
+      return false;
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return true;
   };
 
   /**
-   * Handles form submission for password reset
+   * Request a new OTP code
+   */
+  const handleResendOTP = async () => {
+    if (resendDisabled) return;
+    
+    const userId = passwordResetUserId || new URLSearchParams(location.search).get("userId");
+    if (!userId) {
+      setLocalError("Missing user information. Please try again from the password reset page.");
+      return;
+    }
+    
+    setResendDisabled(true);
+    setLocalError("");
+    if (error) dispatch(resetError());
+    
+    try {
+      await dispatch(resendOTP({
+        userId: userId,
+        purpose: "password_reset" // Specific purpose for password reset
+      })).unwrap();
+      
+      toast.success("A new verification code has been sent to your email.");
+      resetOtpFields(true);
+      
+      // Start cooldown timer (60 seconds)
+      setCountdown(60);
+    } catch (err) {
+      console.error("Error resending OTP:", err);
+      setLocalError(typeof err === 'string' ? err : "Failed to resend verification code");
+      setResendDisabled(false);
+    }
+  };
+
+  /**
+   * Handle form submission
    * @param {Object} e - Event object
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate form before submission
+    
+    // Clear previous errors
+    setLocalError("");
+    if (error) dispatch(resetError());
+    
+    // Validate form
     if (!validateForm()) {
       return;
     }
+    
+    const userId = passwordResetUserId || new URLSearchParams(location.search).get("userId");
+    if (!userId) {
+      setLocalError("Missing user information. Please try again from the password reset page.");
+      return;
+    }
 
-    setLoading(true);
-
+    // Dispatch reset password action
     try {
-      // API request to reset password with OTP
-      const response = await fetch(
-        "http://localhost:7777/api/auth/reset-password",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            userId: userId,
-            otp: formData.otp,
-            newPassword: formData.newPassword,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Password reset failed");
-      }
-
-      // Clear reset data from session storage
-      sessionStorage.removeItem("resetEmail");
-      sessionStorage.removeItem("resetUserId");
-
-      // Show success message
-      toast.success("Password reset successful!");
-
-      // Navigate to login page
-      navigate("/login");
-    } catch (error) {
-      toast.error(error.message || "Failed to reset password");
-      console.error("Password reset error:", error);
-    } finally {
-      setLoading(false);
+      await dispatch(resetPassword({
+        userId: userId,
+        otp: otp.join(""),
+        newPassword: password
+      })).unwrap();
+    } catch (err) {
+      console.error("Password reset error:", err);
+      setLocalError(typeof err === 'string' ? err : "Password reset failed");
     }
   };
 
-  // Redirect if no email is found (user didn't go through the proper flow)
-  useEffect(() => {
-    if (!resetEmail || !userId) {
-      toast.error("Please request a password reset first");
-      navigate("/forget-password");
-    }
-  }, [resetEmail, userId, navigate]);
-
-  // Memoized password strength indicator
-  const PasswordStrengthIndicator = useMemo(() => {
-    if (!formData.newPassword) return null;
-
-    const getColorClass = () => {
-      if (passwordStrength.score <= 2) return "bg-red-500";
-      if (passwordStrength.score <= 4) return "bg-yellow-500";
-      return "bg-green-500";
-    };
-
-    return (
-      <div className="mt-1">
-        <div className="w-full bg-gray-200 h-1 rounded-full overflow-hidden">
-          <div
-            className={`h-full ${getColorClass()}`}
-            style={{ width: `${Math.min(100, passwordStrength.score * 20)}%` }}
-          ></div>
-        </div>
-        <p
-          className={`text-xs mt-1 ${
-            passwordStrength.score <= 2
-              ? "text-red-500"
-              : passwordStrength.score <= 4
-              ? "text-yellow-600"
-              : "text-green-600"
-          }`}
-        >
-          {passwordStrength.message}
-        </p>
-      </div>
-    );
-  }, [formData.newPassword, passwordStrength]);
+  // Get display email (masked or full)
+  const displayEmail = passwordResetEmail || new URLSearchParams(location.search).get("email") || "";
+  const maskedEmail = displayEmail ? 
+    `${displayEmail.substring(0, 3)}...${displayEmail.substring(displayEmail.indexOf('@') || 0)}` : 
+    "your email";
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-full">
-      <div className="w-full flex items-center justify-center px-6 sm:px-10 lg:px-16 py-8">
+      {/* Form side */}
+      <div className="w-full md:w-1/2 flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-md">
-          <form className="px-6 sm:px-10 lg:px-14" onSubmit={handleSubmit}>
-            <h2 className="text-2xl font-semibold text-center mb-4">
-              Reset Password
-            </h2>
-            <p className="mb-8 text-gray-700 font-medium text-center">
-              Please enter the OTP sent to {resetEmail} and create your new
-              password.
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-semibold">Create New Password</h2>
+            <p className="text-gray-500 mt-2">
+              Enter the verification code sent to {maskedEmail}
             </p>
-            {/* OTP Field */}
-            <div className="mb-4">
-              <label
-                htmlFor="otp"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Verification Code (OTP)
-              </label>
-              <input
-                id="otp"
-                name="otp"
-                type="text"
-                className={`w-full px-3 py-2 border ${
-                  errors.otp ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50 bg-gray-100`}
-                placeholder="Enter 6-digit OTP"
-                maxLength={6}
-                value={formData.otp}
-                onChange={handleChange}
-              />
-              {errors.otp && (
-                <p className="text-red-500 text-sm mt-1">{errors.otp}</p>
-              )}
+          </div>
+
+          {/* Display error if any */}
+          {(localError || error) && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-center">
+              {localError || error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate>
+            {/* OTP Input */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="otp-0" className="block font-bold text-gray-700">
+                  Verification Code
+                </label>
+                <button 
+                  type="button"
+                  onClick={() => resetOtpFields()}
+                  className="text-sm text-[#B71B36] hover:underline"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="flex justify-between gap-2">
+                {[0, 1, 2, 3, 4, 5].map((index) => (
+                  <input
+                    key={index}
+                    id={`otp-${index}`}
+                    type="text"
+                    maxLength={1}
+                    className="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50"
+                    value={otp[index]}
+                    onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    onPaste={index === 0 ? handlePaste : undefined}
+                    ref={index === 0 ? firstOtpRef : null}
+                    autoComplete="off"
+                    inputMode="numeric"
+                  />
+                ))}
+              </div>
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  className={`text-sm text-[#B71B36] hover:underline font-medium ${
+                    resendDisabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  disabled={resendDisabled}
+                >
+                  {countdown > 0 ? `Resend OTP (${countdown}s)` : "Resend OTP"}
+                </button>
+              </div>
             </div>
 
-            {/* New Password Field */}
+            {/* Password Input */}
             <div className="mb-4">
-              <label
-                htmlFor="newPassword"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="password" className="block font-bold text-gray-700 mb-2">
                 New Password
               </label>
               <div className="relative">
                 <input
-                  id="newPassword"
-                  name="newPassword"
-                  type={showNewPassword ? "text" : "password"}
-                  className={`w-full px-3 py-2 border ${
-                    errors.newPassword ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50 bg-gray-100`}
-                  placeholder="Enter New Password"
-                  value={formData.newPassword}
-                  onChange={handleChange}
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  className="w-full p-3 border border-gray-300 rounded-lg bg-[#FFFAFB] focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50"
+                  value={password}
+                  onChange={handlePasswordChange}
+                  required
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-3 flex items-center text-gray-400"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  aria-label={showNewPassword ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600"
+                  onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showNewPassword ? (
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                      ></path>
-                    </svg>
-                  ) : (
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      ></path>
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      ></path>
-                    </svg>
-                  )}
+                  {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
-              {PasswordStrengthIndicator}
-              {errors.newPassword && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.newPassword}
+              {/* Password strength indicators */}
+              <div className="mt-2 text-sm">
+                <p className={passwordStrength.length ? "text-green-600" : "text-gray-500"}>
+                  ✓ At least 6 characters
                 </p>
-              )}
+                <p className={passwordStrength.hasNumber ? "text-green-600" : "text-gray-500"}>
+                  ✓ Contains a number
+                </p>
+                <p className={passwordStrength.hasSpecialChar ? "text-green-600" : "text-gray-500"}>
+                  ✓ Contains a special character
+                </p>
+              </div>
             </div>
 
-            {/* Confirm Password Field */}
+            {/* Confirm Password Input */}
             <div className="mb-6">
-              <label
-                htmlFor="confirmPassword"
-                className="block mb-2 text-sm font-medium text-gray-700"
-              >
-                Confirm Password
+              <label htmlFor="confirmPassword" className="block font-bold text-gray-700 mb-2">
+                Confirm New Password
               </label>
               <div className="relative">
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  className={`w-full px-3 py-2 border ${
-                    errors.confirmPassword
-                      ? "border-red-500"
+                  className={`w-full p-3 border ${
+                    confirmPassword && password !== confirmPassword 
+                      ? "border-red-500" 
                       : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50 bg-gray-100`}
-                  placeholder="Confirm Password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
+                  } rounded-lg bg-[#FFFAFB] focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50`}
+                  value={confirmPassword}
+                  onChange={handleConfirmPasswordChange}
+                  required
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-3 flex items-center text-gray-400"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                 >
-                  {showConfirmPassword ? (
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                      ></path>
-                    </svg>
-                  ) : (
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      ></path>
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      ></path>
-                    </svg>
-                  )}
+                  {showConfirmPassword ? "Hide" : "Show"}
                 </button>
               </div>
-              {errors.confirmPassword && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.confirmPassword}
-                </p>
+              {confirmPassword && password !== confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">Passwords do not match</p>
               )}
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full py-3 font-medium text-white bg-[#B71B36] rounded-md hover:bg-[#a01830] focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50 disabled:bg-[#d88a97] disabled:cursor-not-allowed"
-              disabled={loading}
+              className="w-full bg-[#B71B36] text-white py-3 rounded-lg mb-4 hover:bg-[#a01830] transition-colors focus:outline-none focus:ring-2 focus:ring-[#B71B36]/50 disabled:bg-[#B71B36]/50 disabled:cursor-not-allowed"
+              disabled={isLoading}
             >
-              {loading ? (
+              {isLoading ? (
                 <span className="flex items-center justify-center">
                   <svg
                     className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
@@ -758,23 +509,42 @@ const CreatePassword = () => {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Processing...
+                  Resetting Password...
                 </span>
               ) : (
-                "Create New Password"
+                "Reset Password"
               )}
             </button>
-
+            
             {/* Back to Login Link */}
-            <div className="text-center mt-8">
-              <Link
-                to="/login"
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => navigate("/login")}
                 className="text-[#B71B36] hover:underline font-medium"
               >
                 Back to Login
-              </Link>
+              </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      {/* Image side */}
+      <div className="hidden md:block md:w-1/2">
+        <div className="h-full bg-[#f5f5f5] flex items-center justify-center p-8">
+          <div className="max-w-md text-center">
+            <img
+              src={AuthImage}
+              alt="Password Reset"
+              className="max-w-xs mx-auto mb-6"
+              loading="lazy"
+            />
+            <h3 className="text-xl font-bold mb-2">Secure Password Reset</h3>
+            <p className="text-gray-600">
+              Create a strong password that you haven't used before. A good password includes a mix of letters, numbers, and symbols.
+            </p>
+          </div>
         </div>
       </div>
     </div>
