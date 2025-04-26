@@ -42,14 +42,25 @@ const PublicRoute = () => {
       <Route path="/otp-verification" element={<OtpVerification />} />
       <Route path="/create-password" element={<CreatePassword />} />
 
-      <Route element={<ProtectedRoute/>}>
+      <Route element={<ProtectedRoute />}>
         {/* ADMIN AUTH */}
         <Route path="/admin/singup" element={<Layout><AdminRegister /></Layout>} />
         <Route path="/admin/login" element={<Layout><AdminLogin /></Layout>} />
         <Route path="/admin/forgot-password" element={<Layout><AdminForgotPassword /></Layout>} />
         <Route path="/admin/reset-password" element={<Layout><AdminResetPassword /></Layout>} />
         <Route path="/admin/verify-otp" element={<Layout><AdminVerifyOTP /></Layout>} />
-
+        {/* ADMIN PAGES */}
+        {/* Admin Protected Routes */}
+        <Route element={<PrivateAdminRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            {/* Add other admin routes here */}
+            <Route path="/admin/users" element={<GetAllUsers />} />
+            <Route path="/admin/users/:userId/meetings" element={<GetUserMeetings />} />
+            <Route path="/admin/meetings/:meetingId" element={<GetMeetingDetails />} />
+            <Route path="/admin/meetings" element={<div>Meetings Management Page</div>} />
+          </Route>
+        </Route>
 
         {/* Dashboard */}
         <Route path="/layout" element={<Layout />} />
@@ -70,18 +81,7 @@ const PublicRoute = () => {
       </Route>
 
 
-      {/* ADMIN PAGES */}
-      {/* Admin Protected Routes */}
-      <Route element={<PrivateAdminRoute />}>
-        <Route element={<AdminLayout />}>
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          {/* Add other admin routes here */}
-          <Route path="/admin/users" element={<GetAllUsers />} />
-          <Route path="/admin/users/:userId/meetings" element={<GetUserMeetings />} />
-          <Route path="/admin/meetings/:meetingId" element={<GetMeetingDetails />} />
-          <Route path="/admin/meetings" element={<div>Meetings Management Page</div>} />
-        </Route>
-      </Route>
+
 
       {/* 404 Route */}
       <Route path="*" element={<PageNotFound />} />

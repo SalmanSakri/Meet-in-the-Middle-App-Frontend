@@ -307,7 +307,7 @@ export const logoutUser = createAsyncThunk(
       console.error("Logout error:", error);
       
       // Don't reject - still clear local state to ensure user is logged out
-      return null;
+      return rejectWithValue(error);
     }
   }
 );

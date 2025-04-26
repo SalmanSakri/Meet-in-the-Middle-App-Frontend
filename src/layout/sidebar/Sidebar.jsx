@@ -1,16 +1,14 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from 'react-redux';
 import { FaArrowLeft } from "react-icons/fa";
 import { IoCalendarOutline, IoLogOut } from "react-icons/io5";
 import { MdDashboard } from "react-icons/md";
-import { TbMessages } from "react-icons/tb";
 import { IoMdCreate } from "react-icons/io";
-import { BiMap } from "react-icons/bi";
 import { RiAdminFill } from "react-icons/ri";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
-
+import { logoutUser } from '../../redux/slices/authSlice';
 /**
  * Sidebar component with navigation links for the meeting application
  * @returns {React.Component} - Sidebar component
@@ -18,14 +16,18 @@ import { toast } from "react-toastify";
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+    const dispatch = useDispatch();
   const { currentMeeting } = useSelector((state) => state.meetings);
 
-  const handleLogout = () => {
-    // Clear authentication data
-    Cookies.remove("authToken");
-    localStorage.removeItem("userData");
-    toast.success("Logged out successfully");
-    setTimeout(() => navigate("/"), 500);
+  const handleLogout = async () => {
+    try {
+      await dispatch(logoutUser()).unwrap(); // wait for logout to complete
+      toast.success("Logged out successfully");
+      setTimeout(() => navigate("/"), 500);
+    } catch (error) {
+      console.error("Logout failed", error);
+      toast.error("Logout failed, please try again");
+    }
   };
 
   /**
@@ -128,26 +130,6 @@ const Sidebar = () => {
               CreateMeeting
             </p>
           </NavLink>
-          {/* Messages Link */}
-          {/* <NavLink
-            to="/messages"
-            className={({ isActive }) =>
-              `flex cursor-pointer space-x-3 items-center text-base shadow-sm rounded-lg px-3 py-2 font-medium border 
-              border-gray-300 transition-all duration-200
-              ${
-                isActive
-                  ? "bg-blue-100 text-blue-600 shadow-md"
-                  : "bg-gray-50 text-blue-500 hover:bg-blue-50"
-              }`
-            }
-          >
-            <span className="text-xl">
-              <TbMessages />
-            </span>
-            <p className={`${collapsed ? "hidden" : "block"} truncate`}>
-              Messages
-            </p>
-          </NavLink> */}
 
           {/* Admin deshbord */}
           <NavLink
@@ -188,9 +170,10 @@ const Sidebar = () => {
       {/* Mobile Sidebar */}
       <div className="w-16 h-screen block sm:hidden bg-white shadow-md">
         <div className="h-12 bg-blue-500 flex items-center justify-center text-white">
-          <span className="font-bold text-lg">MPP</span>
+          <span className="font-bold text-lg">MP</span>
         </div>
         <div className="p-2 bg-white space-y-3">
+
           {/* Mobile Dashboard Link */}
           <NavLink
             to="/dashboard"
@@ -209,9 +192,9 @@ const Sidebar = () => {
             </span>
           </NavLink>
 
-          {/* Mobile Meetings Link */}
-          <NavLink
-            to="/meetings"
+    {/* Create Meeting Link */}
+    <NavLink
+            to="/create-meeting"
             className={({ isActive }) =>
               `flex cursor-pointer items-center justify-center text-base shadow-sm rounded-lg p-3 font-medium border 
               border-gray-300 transition-all duration-200
@@ -223,13 +206,12 @@ const Sidebar = () => {
             }
           >
             <span className="text-xl">
-              <IoCalendarOutline />
+            <IoMdCreate />
             </span>
           </NavLink>
-
-          {/* Mobile Location Link */}
+          {/* Admin Dashbord Link */}
           <NavLink
-            to="/location-suggestions"
+            to="/admin/singup"
             className={({ isActive }) =>
               `flex cursor-pointer items-center justify-center text-base shadow-sm rounded-lg p-3 font-medium border 
               border-gray-300 transition-all duration-200
@@ -241,25 +223,7 @@ const Sidebar = () => {
             }
           >
             <span className="text-xl">
-              <BiMap />
-            </span>
-          </NavLink>
-
-          {/* Mobile Messages Link */}
-          <NavLink
-            to="/messages"
-            className={({ isActive }) =>
-              `flex cursor-pointer items-center justify-center text-base shadow-sm rounded-lg p-3 font-medium border 
-              border-gray-300 transition-all duration-200
-              ${
-                isActive
-                  ? "bg-blue-100 text-blue-600 shadow-md"
-                  : "bg-gray-50 text-blue-500 hover:bg-blue-50"
-              }`
-            }
-          >
-            <span className="text-xl">
-              <TbMessages />
+            <RiAdminFill />
             </span>
           </NavLink>
 

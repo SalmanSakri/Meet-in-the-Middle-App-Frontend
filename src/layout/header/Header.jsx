@@ -84,22 +84,22 @@ const Header = ({ showMobileSideBar, setShowMobileSideBar, onLogoutClick }) => {
         {/* Search component can be added here */}
       </div>
       {isSidebarOpen && (
-          <div className="hidden sm:block mr-4">
-            <p className="text-2xl">
-              <span className="text-2xl font-bold mr-2">Hii</span>
-              <span className="font-medium">{getDisplayName()}</span>
-              
-            </p>
-            {/* <p className="text-black ">{userData?.email || ""}</p> */}
-          </div>
-        )}
+        <div className="hidden sm:block mr-4">
+          <p className="text-xl">
+            <span className=" font-bold mr-2">Hii</span>
+            <span className="font-medium">{getDisplayName()}</span>
+
+          </p>
+          {/* <p className="text-black ">{userData?.email || ""}</p> */}
+        </div>
+      )}
       {/* User Profile & Actions */}
       <div className="flex items-center">
         {/* User info - visible based on sidebar state */}
-      
+
 
         {/* User avatar and dropdown */}
-        <div className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-2 hover:rounded-lg">
+        <div className="flex items-center cursor-pointer hover:bg-gray-100 p-2 hover:rounded-lg">
           {userData?.image ? (
             <img
               src={userData.image}
@@ -113,11 +113,10 @@ const Header = ({ showMobileSideBar, setShowMobileSideBar, onLogoutClick }) => {
           <select
             className="outline-none p-2 text-gray-700 bg-transparent cursor-pointer appearance-none"
             onChange={handleProfileAction}
-            value=""
+            defaultValue=""
           >
             <option value="" disabled>
-              <p className="text-2xl font-bold mr-1">{userData?.email || "Hii"}</p>
-              {/* {getDisplayName()} */}
+              {userData?.email || "Hi"}
             </option>
             <option value="profile">Profile</option>
             <option value="logout">Logout</option>

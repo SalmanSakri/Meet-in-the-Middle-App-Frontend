@@ -8,15 +8,14 @@ const AdminHeader = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { admin } = useSelector(state => state.adminAuth);
-  
+
   const handleLogout = () => {
     dispatch(logoutAdmin())
-      .unwrap()
       .then(() => {
         navigate('/admin/login');
       });
   };
-  
+
   return (
     <header className="bg-white shadow">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,14 +27,14 @@ const AdminHeader = () => {
               </Link>
             </div>
             <nav className="ml-8 flex items-center space-x-4">
-              <Link 
-                to="/admin/dashboard" 
+              <Link
+                to="/admin/dashboard"
                 className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
               >
                 Dashboard
               </Link>
-              <Link 
-                to="/admin/users" 
+              <Link
+                to="/admin/users"
                 className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
               >
                 Users

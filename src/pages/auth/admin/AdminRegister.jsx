@@ -1,4 +1,3 @@
-// src/components/admin/auth/AdminRegister.js
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
@@ -57,11 +56,11 @@ const AdminRegister = () => {
     });
   };
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validate()) {
-      dispatch(registerAdmin(formData));
+      await dispatch(registerAdmin(formData));
     }
   };
   

@@ -364,21 +364,26 @@ const authService = {
     }
   },
 
-
-  resetPassword: async (userId, otp, newPassword) => {
+  /**
+   * Reset password with token
+   * @param {string} token - Reset token
+   * @param {string} password - New password
+   * @returns {Promise} - API response or error
+   */
+  resetPassword: async (token, password) => {
     try {
       // Validate inputs before sending
-      if (!userId || !otp || !newPassword) {
-        throw new Error("User ID, OTP, and new password are required");
+      if (!token || !password) {
+        throw new Error("Token and password are required");
       }
-  
+
       // Password strength validation
-      if (newPassword.length < 6) {
+      if (password.length < 6) {
         throw new Error("Password must be at least 6 characters");
       }
-  
+
       // Send reset request
-      const response = await api.post("/reset-password", { userId, otp, newPassword });
+      const response = await api.post("/reset-password", { token, password });
       return { success: true, data: response.data };
     } catch (error) {
       return {

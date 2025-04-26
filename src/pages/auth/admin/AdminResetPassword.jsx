@@ -61,17 +61,27 @@ const AdminResetPassword = () => {
     e.preventDefault();
     if (!validate()) return;
     
-    dispatch(resetPassword({ adminId, ...formData }))
-      .unwrap()
-      .then(() => {
-        navigate('/admin/login', { 
-          state: { message: 'Password reset successfully. Please login.' }
-        });
+    // Fixed: Only send the required fields in the exact structure expected by the API
+    dispatch(resetPassword({
+      adminId: adminId,
+      otp: formData.otp,
+      newPassword: formData.newPassword
+    }))
+      .then((result) => {
+        // Check if the result was successful
+        if (!result.error) {
+          navigate('/admin/login', { 
+            state: { message: 'Password reset successfully. Please login.' }
+          });
+        }
       });
   };
   
   const handleResendOTP = () => {
-    dispatch(resendOTP({ adminId, purpose: 'admin_password_reset' }));
+    dispatch(resendOTP({ 
+      adminId: adminId, 
+      purpose: 'admin_password_reset' 
+    }));
     setCountdown(60);
   };
 
