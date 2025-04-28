@@ -58,31 +58,22 @@ const PublicRoute = () => {
             <Route path="/admin/users" element={<GetAllUsers />} />
             <Route path="/admin/users/:userId/meetings" element={<GetUserMeetings />} />
             <Route path="/admin/meetings/:meetingId" element={<GetMeetingDetails />} />
-            <Route path="/admin/meetings" element={<div>Meetings Management Page</div>} />
           </Route>
         </Route>
-
         {/* Dashboard */}
         <Route path="/layout" element={<Layout />} />
         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-
         {/* MEETING */}
         <Route path="/MeetingDetails" element={<MeetingDetails />} />
         <Route path="/create-meeting" element={<Layout><CreateMeeting /></Layout>} />
         <Route path="/meetings/:meetingId/edit" element={<Layout><EditMeeting /></Layout>} />
         <Route path="/meetings/:meetingId" element={<Layout><MeetingDetails /></Layout>} />
-
         <Route path="/MeetingLocation" element={<Layout><MeetingLocation /></Layout>} />
-        {/* New invitation response route */}
         <Route path="/invitation/:meetingId" element={<InvitationResponse />} />
-        {/* Alternatively, you could use a structure like this for explicit actions */}
-        <Route path="/response/:meetingId/:token/:response" element={<InvitationResponse />} />
-
+   
       </Route>
 
-
-
-
+      <Route path="/response/:meetingId/:token/:response" element={<InvitationResponse />} />
       {/* 404 Route */}
       <Route path="*" element={<PageNotFound />} />
 
@@ -91,50 +82,3 @@ const PublicRoute = () => {
 };
 
 export default PublicRoute;
-
-// import React from 'react';
-// import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-// import { ToastContainer } from 'react-toastify';
-// import 'react-toastify/dist/ReactToastify.css';
-// import Dashboard from './pages/Dashboard';
-// import Login from './pages/auth/Login';
-// import SignUp from './pages/auth/SignUp';
-// import ForgotPassword from './pages/auth/ForgotPassword';
-// import OtpVerification from './pages/auth/OtpVerification';
-// import ProtectedRoute from './components/ProtectedRoute';
-// import Layout from './components/Layout';
-// import CreateMeeting from './pages/meetings/CreateMeeting';
-// import MeetingDetail from './pages/meetings/MeetingDetail';
-// import MeetingResponse from './pages/meetings/MeetingResponse';
-// import NotFound from './pages/NotFound';
-
-// <Router>
-//   <ToastContainer position="top-right" autoClose={5000} />
-//   <Routes>
-//     {/* Auth Routes */}
-//     <Route path="/login" element={<Login />} />
-//     <Route path="/" element={<SignUp />} />
-//     <Route path="/forget-password" element={<ForgotPassword />} />
-//     <Route path="/otp-verification" element={<OtpVerification />} />
-//     <Route path="/verify-otp" element={<OtpVerification />} />
-
-//     {/* Protected Routes */}
-//     <Route element={<ProtectedRoute />}>
-//       <Route element={<Layout />}>
-//         <Route path="/dashboard" element={<Dashboard />} />
-//         <Route path="/meetings/create" element={<CreateMeeting />} />
-//         <Route path="/meetings/:meetingId" element={<MeetingDetail />} />
-//       </Route>
-//     </Route>
-
-//     {/* Public Meeting Response */}
-//     <Route
-//       path="/meeting/response/:meetingId/:token/:response"
-//       element={<MeetingResponse />}
-//     />
-
-//     {/* Redirect and Not Found */}
-//     <Route path="/add" element={<Navigate to="/dashboard" replace />} />
-//     <Route path="*" element={<NotFound />} />
-//   </Routes>
-// </Router>;
