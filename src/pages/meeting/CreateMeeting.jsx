@@ -164,21 +164,65 @@ const CreateMeeting = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.title) {
+  
+    const {
+      title,
+      description,
+      startTime,
+      endTime,
+      location: { address, coordinates },
+    } = formData;
+  
+    if (!title.trim()) {
       toast.warning("Please provide a meeting title");
       return;
     }
-
-    // Make a copy of the data to ensure the location data is properly formatted
+  
+    if (!description.trim()) {
+      toast.warning("Please provide a description");
+      return;
+    }
+  
+    if (!address.trim()) {
+      toast.warning("Please provide the location address");
+      return;
+    }
+  
+    if (
+      !coordinates ||
+      coordinates.length !== 2 ||
+      (coordinates[0] === 0 && coordinates[1] === 0)
+    ) {
+      toast.warning("Please Click Currunt Location");
+      return;
+    }
+  
+    // if (startTime.getTime() === endTime.getTime()) {
+    //   toast.warning("Start time and end time cannot be the same");
+    //   return;
+    // }
+  
+    // if (startTime > endTime) {
+    //   toast.warning("End time must be after start time");
+    //   return;
+    // }
+  
+    if (
+      startTime.toDateString() !== endTime.toDateString()
+    ) {
+      toast.warning("Start and end time must be on the same date");
+      return;
+    }
+  
     const meetingData = {
       ...formData,
       location: {
         ...formData.location,
         type: "Point",
-        coordinates: formData.location.coordinates,
+        coordinates: coordinates,
       },
     };
-
+  
     dispatch(createMeeting(meetingData));
   };
 
@@ -223,6 +267,7 @@ const CreateMeeting = () => {
                 placeholder="Describe the purpose of this meeting"
                 rows="3"
                 className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               />
             </div>
           </div>
@@ -282,6 +327,7 @@ const CreateMeeting = () => {
                 onChange={handleChange}
                 placeholder="Enter location name"
                 className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               />
             </div>
 
@@ -294,6 +340,7 @@ const CreateMeeting = () => {
                 onChange={handleChange}
                 placeholder="Enter location address"
                 className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               />
             </div>
 

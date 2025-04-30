@@ -1,12 +1,10 @@
-/**
- * @file Header.jsx
- * @description Header component for the meeting application
- */
-import React, { useEffect, useState } from "react";
+
+import React, { useEffect, useState,useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
 import { IoIosMenu } from "react-icons/io";
 import { LuCircleUserRound } from "react-icons/lu";
-
+import { logoutUser } from '../../redux/slices/authSlice';
 /**
  * Header component with navigation and user controls
  * @param {Object} props - Component props
@@ -15,8 +13,11 @@ import { LuCircleUserRound } from "react-icons/lu";
  * @param {Function} props.onLogoutClick - Function to handle logout
  * @returns {React.Component} - Header component
  */
-const Header = ({ showMobileSideBar, setShowMobileSideBar, onLogoutClick }) => {
+const Header = ({ showMobileSideBar, setShowMobileSideBar }) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const [userData, setUserData] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -32,30 +33,17 @@ const Header = ({ showMobileSideBar, setShowMobileSideBar, onLogoutClick }) => {
     } catch (error) {
       console.error("Error loading user data:", error);
     }
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+
   }, []);
 
-  /**
-   * Handle profile dropdown selection changes
-   * @param {Object} event - Change event
-   */
-  const handleProfileAction = (event) => {
-    const action = event.target.value;
-
-    switch (action) {
-      case "profile":
-        navigate("/profile");
-        break;
-      case "logout":
-        onLogoutClick();
-        break;
-      default:
-        // Do nothing for default/current user option
-        break;
-    }
-
-    // Reset dropdown to default after selection
-    event.target.value = "";
-  };
 
   /**
    * Toggle mobile sidebar visibility
@@ -68,7 +56,19 @@ const Header = ({ showMobileSideBar, setShowMobileSideBar, onLogoutClick }) => {
   const getDisplayName = () => {
     return userData?.fullName || userData?.name || "User";
   };
+  
 
+
+  const handleProfileAction = (value) => {
+    if (value === "logout") {
+      dispatch(logoutUser()).then(() => {
+        navigate("/login");
+      });
+    } else if (value === "profile") {
+      navigate("/user/profile");
+    }
+    setIsOpen(false);
+  };
   return (
     <div className="w-full h-[90px] flex justify-between items-center p-[20px] bg-white shadow-md">
       {/* Mobile Menu Toggle */}
@@ -110,17 +110,31 @@ const Header = ({ showMobileSideBar, setShowMobileSideBar, onLogoutClick }) => {
             <LuCircleUserRound className="text-3xl text-gray-700" />
           )}
 
-          <select
-            className="outline-none p-2 text-gray-700 bg-transparent cursor-pointer appearance-none"
-            onChange={handleProfileAction}
-            defaultValue=""
+<div className="relative inline-block text-left" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 text-gray-700 bg-transparent outline-none cursor-pointer"
+      >
+        {userData?.email || "Hi"}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 z-10 mt-2 w-40 bg-white border rounded shadow-md">
+          <button
+            onClick={() => handleProfileAction("profile")}
+            className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100"
           >
-            <option value="" disabled>
-              {userData?.email || "Hi"}
-            </option>
-            <option value="profile">Profile</option>
-            <option value="logout">Logout</option>
-          </select>
+            Profile
+          </button>
+          <button
+            onClick={() => handleProfileAction("logout")}
+            className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100"
+          >
+            Logout
+          </button>
+        </div>
+      )}
+    </div>
         </div>
       </div>
     </div>

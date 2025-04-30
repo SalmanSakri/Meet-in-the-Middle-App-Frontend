@@ -247,27 +247,68 @@ export const getUserMeetings = async () => {
  */
 export const getMeetingById = async (meetingId) => {
   try {
-    // Added null check for meetingId
-    if (!meetingId) {
-      throw new Error("Meeting ID is required");
+    // Enhanced validation with trimming and type checking
+    if (!meetingId || typeof meetingId !== 'string' || !meetingId.trim()) {
+      return {
+        success: false,
+        message: 'Valid meeting ID is required'
+      };
     }
 
-    // Get user data to include in the request
+    // Get user data and validate
     const userData = getUserData();
+    if (!userData?.id && !userData?._id) {
+      return {
+        success: false,
+        message: 'User authentication required'
+      };
+    }
 
-    // Include the user ID as a query parameter
-    const data = await api.get(`/${meetingId}`, {
+    // Clean the meetingId by trimming
+    const cleanMeetingId = meetingId.trim();
+    if (!cleanMeetingId) {
+      throw new Error("Meeting ID cannot be empty");
+    }
+    // Make the API call with proper error handling
+    const response = await api.get(`/${cleanMeetingId.trim()}`, {
       params: {
         userId: userData.id || userData._id,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone // Include user's timezone
       },
     });
-    return data;
+
+    // Validate response
+    if (!response?.meeting) {
+      return {
+        success: false,
+        message: 'Meeting not found'
+      };
+    }
+
+    return {
+      success: true,
+      meeting: {
+        ...response.meeting,
+        startTime: response.meeting.startTime ? new Date(response.meeting.startTime).toISOString() : null,
+        endTime: response.meeting.endTime ? new Date(response.meeting.endTime).toISOString() : null
+      }
+    };
   } catch (error) {
-    console.error("Error fetching meeting:", error);
-    throw error;
+    // Enhanced error handling with more specific messages
+    const errorMessage = 
+      error.response?.data?.message || 
+      error.message || 
+      "Failed to fetch meeting details";
+
+    console.error("Error fetching meeting:", errorMessage);
+    
+    throw {
+      success: false,
+      message: errorMessage,
+      originalError: error
+    };
   }
 };
-
 /**
  * Update a meeting
  * @param {string} meetingId - Meeting ID
@@ -276,26 +317,44 @@ export const getMeetingById = async (meetingId) => {
  */
 export const updateMeeting = async (meetingId, meetingData) => {
   try {
-    if (!meetingId) {
-      throw new Error("Meeting ID is required");
+    if (!meetingId || typeof meetingId !== 'string' || !meetingId.trim()) {
+      return {
+        success: false,
+        message: 'Valid meeting ID is required'
+      };
     }
 
-    // Ensure the location object is properly formatted
     const formattedData = {
       ...meetingData,
-      location: meetingData.location
-        ? {
-            type: "Point",
-            coordinates: meetingData.location.coordinates || [0, 0],
-            name: meetingData.location.name || "",
-            address: meetingData.location.address || "",
-          }
-        : meetingData.location,
+      location: meetingData.location ? {
+        type: 'Point',
+        coordinates: Array.isArray(meetingData.location.coordinates) 
+          ? meetingData.location.coordinates 
+          : [0, 0],
+        name: meetingData.location.name?.trim() || '',
+        address: meetingData.location.address?.trim() || ''
+      } : undefined
     };
-   return await api.put(`/${meetingId}`, formattedData);
+
+    const response = await api.put(`/${meetingId.trim()}`, formattedData);
+    
+    if (!response.success) {
+      return {
+        success: false,
+        message: response.message || 'Failed to update meeting'
+      };
+    }
+
+    return {
+      success: true,
+      meeting: response.meeting,
+      message: 'Meeting updated successfully'
+    };
   } catch (error) {
-    console.error("Error updating meeting:", error);
-    throw error;
+    return {
+      success: false,
+      message: error.message || 'Failed to update meeting'
+    };
   }
 };
 

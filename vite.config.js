@@ -5,6 +5,13 @@ import tailwindcss from "@tailwindcss/vite";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [tailwindcss(), react()],
+  optimizeDeps: {
+    include: [
+      'react-leaflet',
+      'leaflet',
+      'leaflet/dist/leaflet.css'
+    ]
+  },
   server: {
     port: 7867,
   },

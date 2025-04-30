@@ -1,10 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./redux/slices/authSlice";
 import meetingsReducer from "./redux/slices/meetingSlice";
-
-
 import { adminApi } from "./services/adminApi";
 import adminAuthReducer from "./redux/slices/adminAuthSlice";
+import profileReducer from "./redux/slices/profileSlice";
 /**
  * Configure Redux store with all reducers
  */
@@ -13,6 +12,7 @@ export const store = configureStore({
     auth: authReducer,
     meetings: meetingsReducer,
     adminAuth: adminAuthReducer,
+    profile: profileReducer,
     // userAuth: userAuthReducer, // Your existing user auth reducer
     [adminApi.reducerPath]: adminApi.reducer,
   },

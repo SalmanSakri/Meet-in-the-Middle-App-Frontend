@@ -150,16 +150,6 @@ const Dashboard = () => {
           >
             Grid View
           </button>
-          <button
-            onClick={() => toggleView("map")}
-            className={`px-4 py-2 rounded-md flex items-center ${
-              view === "map"
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-500 hover:bg-gray-100"
-            }`}
-          >
-            <FaMapMarkerAlt className="mr-1" /> Map View
-          </button>
         </div>
 
         {/* Meeting List */}

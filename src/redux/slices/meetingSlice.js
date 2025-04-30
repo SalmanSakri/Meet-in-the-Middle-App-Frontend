@@ -29,11 +29,24 @@ export const getUserMeetings = createAsyncThunk(
 );
 export const getMeetingById = createAsyncThunk(
   "meetings/getMeetingById",
-  async (meetingId, { rejectWithValue }) => {
+  async ({ meetingId }, { rejectWithValue }) => {
     try {
-      const response = await meetingService.getMeetingById(meetingId);
+      if (!meetingId?.trim()) {
+        return rejectWithValue({
+          message: "Valid meeting ID is required",
+        });
+      }
+
+      const response = await meetingService.getMeetingById(meetingId.trim());
+      
+      if (!response.success) {
+        return rejectWithValue({
+          message: response.message || "Failed to fetch meeting",
+        });
+      }
+
       return response.meeting;
-    } catch (error) {
+    }  catch (error) {
       return rejectWithValue(
         error.message || "Not authorized to view this meeting"
       );
@@ -87,18 +100,26 @@ export const updateMeeting = createAsyncThunk(
   "meetings/updateMeeting",
   async ({ meetingId, meetingData }, { rejectWithValue }) => {
     try {
-      if (!meetingId || !meetingData) {
-        return rejectWithValue({ message: "Meeting ID and data are required" });
+      if (!meetingId?.trim()) {
+        return rejectWithValue({
+          message: "Valid meeting ID is required",
+        });
       }
-      const response = await meetingService.updateMeeting(
-        meetingId,
-        meetingData
-      );
-      return response.meeting || response; // Handle both response formats
+
+      const response = await meetingService.updateMeeting(meetingId.trim(), meetingData);
+      
+      if (!response.success) {
+        return rejectWithValue({
+          message: response.message || "Failed to update meeting",
+        });
+      }
+
+      return response.meeting|| response; // Handle both response formats
     } catch (error) {
       return rejectWithValue(
         error.response?.data || {
           message: error.message || "Failed to update meeting",
+          error
         }
       );
     }
@@ -259,6 +280,7 @@ const meetingSlice = createSlice({
       .addCase(getMeetingById.fulfilled, (state, action) => {
         state.loading = false;
         state.currentMeeting = action.payload;
+        state.error = null;
       })
       .addCase(getMeetingById.rejected, (state, action) => {
         state.loading = false;
@@ -314,6 +336,7 @@ const meetingSlice = createSlice({
           }
         }
         state.success = "Meeting updated successfully";
+        state.error = null;
       })
       .addCase(updateMeeting.rejected, (state, action) => {
         state.loading = false;

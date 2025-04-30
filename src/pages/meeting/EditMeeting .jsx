@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-import { getMeetingById, updateMeeting } from "../../redux/slices/meetingSlice";
+import { getMeetingById, updateMeeting, clearMeetingError } from "../../redux/slices/meetingSlice";
 import {
   FaCalendarAlt,
   FaClock,
@@ -12,11 +12,11 @@ import {
 } from "react-icons/fa";
 
 const EditMeeting = () => {
-  const { meetingId } = useParams();
+  const {meetingId} = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { currentMeeting, isLoading, error } = useSelector(
+  const { currentMeeting, loading: isLoading, error } = useSelector(
     (state) => state.meetings
   );
 
@@ -36,12 +36,30 @@ const EditMeeting = () => {
   // Load meeting data when component mounts
   useEffect(() => {
     const fetchMeeting = async () => {
-      if (meetingId) {
-        await dispatch(getMeetingById(meetingId));
+      if (!meetingId) {
+        toast.error("Invalid meeting ID provided");
+        navigate("/dashboard");
+        return;
+      }
+      
+      try {
+        // Pass meetingId directly without wrapping in an object
+        const result = await dispatch(getMeetingById({ meetingId })).unwrap();
+        if (!result) {
+          toast.error("Meeting not found");
+          navigate("/dashboard");
+        }
+      } catch (error) {
+        toast.error(error.message || "Failed to fetch meeting details");
+        navigate("/dashboard");
       }
     };
+    
     fetchMeeting();
-  }, [dispatch, meetingId]);
+    return () => {
+      dispatch(clearMeetingError());
+    };
+  }, [dispatch, meetingId, navigate]);
 
   // Set form data when meeting data is loaded
   useEffect(() => {
@@ -92,25 +110,25 @@ const EditMeeting = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    if (!meetingId) {
+      toast.error("Meeting ID is missing");
+      return;
+    }
     try {
-      const resultAction = await dispatch(
-        updateMeeting({
-          meetingId,
-          meetingData: formData,
-        })
-      );
+      await dispatch(updateMeeting({
+        meetingId:meetingId,
+        meetingData: {
+          ...formData,
+          // Ensure dates are in ISO format
+          startTime: formData.startTime ? new Date(formData.startTime).toISOString() : null,
+          endTime: formData.endTime ? new Date(formData.endTime).toISOString() : null,
+        }
+      })).unwrap();
 
-      if (updateMeeting.fulfilled.match(resultAction)) {
-        toast.success("Meeting updated successfully");
-        navigate(`/meetings/${meetingId}`);
-      } else if (updateMeeting.rejected.match(resultAction)) {
-        toast.error(
-          resultAction.payload?.message || "Failed to update meeting"
-        );
-      }
-    } catch (err) {
-      toast.error("Failed to update meeting");
+      toast.success("Meeting updated successfully");
+      navigate(`/meetings/${meetingId}`);
+    } catch (error) {
+      toast.error(error.message || "Failed to update meeting");
     }
   };
 

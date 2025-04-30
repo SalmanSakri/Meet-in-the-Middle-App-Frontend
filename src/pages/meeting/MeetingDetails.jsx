@@ -1,44 +1,32 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-
-import LocationTracker from "../location/LocationTracker";
-import LocationSuggestions from "../../pages/location/LocationSuggestions";
-import AttendeeLocationsMap from "../../pages/location/AttendeeLocationsMap";
-import SelectMeetingLocation from "../location/SelectMeetingLocation";
+import {
+  FaCalendarAlt, FaMapMarkerAlt, FaClock, FaUserCircle,
+  FaCheck, FaTimes, FaQuestion, FaEdit, FaTrash,
+  FaArrowLeft, FaUserPlus
+} from "react-icons/fa";
+import RealTimeLocation from "../RealTimeLocation";
 import LoadingSpinner from "../../component/LoadingSpinner";
 import {
   getMeetingById,
   deleteMeeting,
   updateLocation,
 } from "../../redux/slices/meetingSlice";
-import {
-  FaCalendarAlt,
-  FaMapMarkerAlt,
-  FaClock,
-  FaUserCircle,
-  FaCheck,
-  FaTimes,
-  FaQuestion,
-  FaEdit,
-  FaTrash,
-  FaArrowLeft,
-  FaEnvelope,
-  FaPhoneAlt,
-  FaUserPlus,
-} from "react-icons/fa";
+import { backendToLeaflet, leafletToBackend, ensureValidCoordinates } from "../../utils/Coordinate";
 
 const MeetingDetail = () => {
   const { meetingId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const MAP_API_URL = import.meta.env.VITE_APP_GOOGLE_MAPS_API_KEYL;
-
-  const [selectedLocationSuggestion, setSelectedLocationSuggestion] =
-    useState(null);
-  const [googleMapsApiKey, setGoogleMapsApiKey] = useState(MAP_API_URL);
+  // State management
+  const [showLocationSelector, setShowLocationSelector] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [locationLoaded, setLocationLoaded] = useState(false);
 
   // Get user and meeting state from Redux
   const { user, token } = useSelector((state) => state.auth);
@@ -51,14 +39,20 @@ const MeetingDetail = () => {
   // Fetch meeting details when component mounts or meetingId changes
   useEffect(() => {
     if (meetingId) {
-      dispatch(getMeetingById(meetingId))
+      dispatch(getMeetingById({ meetingId, token }))
         .unwrap()
+        .then((result) => {
+          // Verify location data is properly loaded
+          if (result.meeting && result.meeting.location) {
+            setLocationLoaded(true);
+          }
+        })
         .catch((err) => {
           // Check for authentication errors specifically
           if (
-            err.includes("unauthorized") ||
-            err.includes("not authorized") ||
-            err.includes("Not authorized")
+            err?.includes("unauthorized") ||
+            err?.includes("not authorized") ||
+            err?.includes("Not authorized")
           ) {
             toast.error("You don't have permission to view this meeting");
             navigate("/dashboard");
@@ -67,16 +61,51 @@ const MeetingDetail = () => {
           }
         });
     }
-  }, [meetingId, dispatch, navigate]);
+  }, [meetingId, dispatch, navigate, token]);
+
+  // Check if user is the creator of this meeting
+  const isCreator = useMemo(() => {
+    return meeting?.createdBy === user?.id;
+  }, [meeting, user]);
+
+  // Calculate if meeting is past
+  const isMeetingPast = useMemo(() => {
+    return meeting?.endTime ? new Date(meeting.endTime) < new Date() : false;
+  }, [meeting]);
+
+  // Format date for display
+  const formatDate = useCallback((dateString) => {
+    if (!dateString) return "Not set";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }, []);
+
+  // Format time for display
+  const formatTime = useCallback((dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }, []);
 
   // Handle delete meeting action
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!window.confirm("Are you sure you want to delete this meeting?")) {
       return;
     }
 
     try {
-      const resultAction = await dispatch(deleteMeeting(meetingId));
+      setIsSubmitting(true);
+      const resultAction = await dispatch(deleteMeeting({ meetingId, token }));
+      setIsSubmitting(false);
+
       if (deleteMeeting.fulfilled.match(resultAction)) {
         toast.success("Meeting deleted successfully");
         navigate("/dashboard");
@@ -86,97 +115,135 @@ const MeetingDetail = () => {
         );
       }
     } catch (err) {
+      setIsSubmitting(false);
       toast.error("Failed to delete meeting");
     }
-  };
+  }, [meetingId, dispatch, navigate, token]);
+
+  // Get meeting location in Leaflet format for the map
+  const getMeetingLocationForMap = useCallback(() => {
+    if (!meeting || !meeting.location || !meeting.location.coordinates) {
+      return null;
+    }
+    
+    const coords = meeting.location.coordinates;
+    if (!Array.isArray(coords) || coords.length !== 2) {
+      return null;
+    }
+    
+    // Convert from backend format [lng, lat] to Leaflet format [lat, lng]
+    return backendToLeaflet(coords);
+  }, [meeting]);
 
   // Handle location confirmation
-  const handleLocationConfirmed = async (finalLocation) => {
+  const handleLocationSelected = useCallback(async (location) => {
+    if (!location || !location.coordinates) {
+      toast.error("Invalid location selected");
+      return;
+    }
+
     try {
+      setIsSubmitting(true);
+      
+      // Convert from Leaflet [lat, lng] to backend [lng, lat] format
+      const backendCoordinates = leafletToBackend(location.coordinates);
+      
+      if (!backendCoordinates) {
+        throw new Error("Invalid coordinates format");
+      }
+      
+      const updatedLocation = {
+        name: location.name || 'Selected Location',
+        address: location.address || '',
+        coordinates: backendCoordinates // Already in [lng, lat] format for backend
+      };
+
       await dispatch(
         updateLocation({
           meetingId,
-          location: finalLocation,
-          token,
+          location: updatedLocation,
+          token
         })
       ).unwrap();
 
       toast.success("Meeting location updated successfully");
-      setSelectedLocationSuggestion(null);
+      setShowLocationSelector(false);
+
+      // Refresh meeting data
+      dispatch(getMeetingById({ meetingId, token }));
+      setIsSubmitting(false);
     } catch (err) {
+      setIsSubmitting(false);
       toast.error("Failed to update meeting location");
+      console.error("Location update error:", err);
     }
-  };
+  }, [dispatch, meetingId, token]);
 
-  const handleLocationSelection = (suggestion) => {
-    setSelectedLocationSuggestion(suggestion);
-  };
+  // Handle invite submission
+  const handleInviteSubmit = useCallback(async (e) => {
+    e.preventDefault();
 
-  // Memoized computations
-  const formattedDateAndTime = useMemo(() => {
-    if (!meeting) return { date: "", startTime: "", endTime: "" };
+    if (!inviteEmail.trim()) {
+      toast.error("Please enter an email address");
+      return;
+    }
 
-    const formatDate = (dateString) => {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
+    try {
+      setIsSubmitting(true);
+
+      // This should be converted to use a Redux action
+      const apiBaseUrl = import.meta.env.VITE_API_MEETING_URL || 
+        window.VITE_API_MEETING_URL || 
+        'http://localhost:7777/api';
+
+      const response = await fetch(`${apiBaseUrl}/meetings/${meetingId}/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ email: inviteEmail })
       });
-    };
 
-    const formatTime = (dateString) => {
-      const date = new Date(dateString);
-      return date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    };
+      setIsSubmitting(false);
 
-    return {
-      date: formatDate(meeting.startTime),
-      startTime: formatTime(meeting.startTime),
-      endTime: formatTime(meeting.endTime),
-    };
-  }, [meeting]);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
 
-  const isMeetingPast = useMemo(() => {
-    return meeting && new Date(meeting.endTime) < new Date();
-  }, [meeting]);
+      toast.success(`Invitation sent to ${inviteEmail}`);
+      setInviteEmail("");
+      setShowInviteForm(false);
 
-  const isCreator = useMemo(() => {
-    return (
-      meeting?.creator &&
-      user &&
-      (meeting.creator._id === user._id || meeting.creator._id === user.id)
-    );
-  }, [meeting, user]);
+      // Refresh meeting data to show the new attendee
+      dispatch(getMeetingById({ meetingId, token }));
+    } catch (err) {
+      setIsSubmitting(false);
+      toast.error(err.message || "Failed to send invitation");
+    }
+  }, [inviteEmail, meetingId, token, dispatch]);
 
-  // Status utility functions
-  const getStatusColor = (status) => {
+  // Get attendee status text and color
+  const getAttendeeStatusInfo = useCallback((status) => {
     switch (status) {
-      case "accepted":
-        return "text-green-500";
-      case "declined":
-        return "text-red-500";
-      case "pending":
+      case 'accepted':
+        return { icon: <FaCheck className="text-green-500" />, text: 'Attending', color: 'text-green-600' };
+      case 'declined':
+        return { icon: <FaTimes className="text-red-500" />, text: 'Not Attending', color: 'text-red-600' };
+      case 'pending':
       default:
-      return "text-yellow-500";
+        return { icon: <FaQuestion className="text-yellow-500" />, text: 'Pending', color: 'text-yellow-600' };
     }
-  };
+  }, []);
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "accepted":
-        return <FaCheck className={`mr-2 ${getStatusColor(status)}`} />;
-      case "declined":
-        return <FaTimes className={`mr-2 ${getStatusColor(status)}`} />;
-case "pending":
-default:
-        return <FaQuestion className={`mr-2 ${getStatusColor(status)}`} />;
+  // Debug log meeting location if it exists
+  useEffect(() => {
+    if (meeting && meeting.location && meeting.location.coordinates) {
+      console.log("Meeting location from API:", meeting.location);
+      console.log("Converted for Leaflet:", getMeetingLocationForMap());
     }
-};
+  }, [meeting, getMeetingLocationForMap]);
 
   if (loading) {
     return <LoadingSpinner />;
@@ -185,304 +252,320 @@ default:
   if (error) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white shadow-lg rounded-lg p-8 max-w-md w-full">
-          <div className="text-center mb-6">
-            <div className="text-red-500 text-5xl mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-16 w-16 mx-auto"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800">
-              Error Loading Meeting
-            </h2>
-            <p className="text-gray-600 mt-2">{error}</p>
-          </div>
-          <div className="flex justify-center">
-            <button
-              onClick={() => navigate("/dashboard")}
-              className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Back to Dashboard
-            </button>
-          </div>
+        <div className="bg-white shadow-xl rounded-lg p-8 max-w-xl w-full">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
+          <p className="text-gray-700 mb-6">{error}</p>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Return to Dashboard
+          </button>
         </div>
       </div>
     );
   }
 
   if (!meeting) {
-    return null;
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6 flex items-center">
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white shadow-xl rounded-lg p-8 max-w-xl w-full">
+          <h1 className="text-2xl font-bold text-gray-700 mb-4">Meeting Not Found</h1>
+          <p className="text-gray-600 mb-6">
+            The meeting you're looking for doesn't exist or you don't have
+            permission to view it.
+          </p>
           <button
             onClick={() => navigate("/dashboard")}
-            className="mr-4 flex items-center text-gray-600 hover:text-gray-900"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
-            <FaArrowLeft className="mr-2" /> Back
+            Return to Dashboard
           </button>
-          <h1 className="text-3xl font-bold text-gray-800">Meeting Details</h1>
         </div>
+      </div>
+    );
+  }
 
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+  // Get meeting location for map display - safely convert to Leaflet format
+  const mapInitialLocation = getMeetingLocationForMap();
+
+  return (
+    <div className="min-h-screen bg-gray-100 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Back button */}
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="flex items-center text-blue-600 hover:text-blue-800 mb-6"
+        >
+          <FaArrowLeft className="mr-2" /> Back to Dashboard
+        </button>
+
+        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
           {/* Meeting Header */}
-          <div className="bg-blue-700 text-white p-6">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-6">
             <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">{meeting.title}</h2>
-                <p className="mb-4 opacity-90">
-                  {meeting.description || "No description provided."}
-                </p>
-
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center">
-                    <FaCalendarAlt className="mr-2" />
-                    <span>{formattedDateAndTime.date}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FaClock className="mr-2" />
-                    <span>
-                      {formattedDateAndTime.startTime} -{" "}
-                      {formattedDateAndTime.endTime}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-1">
-                {isMeetingPast ? (
-                  <span className="px-3 py-1 text-sm bg-gray-200 text-gray-800 rounded-full font-medium">
-                    Past
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full font-medium">
-                    Upcoming
-                  </span>
-                )}
-              </div>
+              <h1 className="text-3xl font-bold text-white mb-2">{meeting.title}</h1>
+              {isMeetingPast ? (
+                <span className="px-3 py-1 bg-gray-200 text-gray-800 rounded-full text-sm font-medium">
+                  Past Meeting
+                </span>
+              ) : (
+                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                  Upcoming
+                </span>
+              )}
             </div>
+            <p className="text-blue-100 text-lg">
+              {meeting.description || "No description provided."}
+            </p>
           </div>
 
-          {/* Meeting Body */}
+          {/* Meeting Details */}
           <div className="p-6">
-            {/* Location Section */}
-            {meeting.location &&
-              (meeting.location.name ||
-                meeting.location.address ||
-                (meeting.location.coordinates &&
-                  meeting.location.coordinates[0] !== 0)) && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                    Location
-                  </h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-start">
-                      <FaMapMarkerAlt className="text-red-500 text-lg mt-1 mr-3" />
-                      <div>
-                        {meeting.location.name && (
-                          <p className="font-medium">{meeting.location.name}</p>
-                        )}
-                        {meeting.location.address && (
-                          <p className="text-gray-600">
-                            {meeting.location.address}
-                          </p>
-                        )}
-                        {meeting.location.coordinates &&
-                          meeting.location.coordinates[0] !== 0 && (
-                            <p className="text-gray-500 text-sm mt-1">
-                              Coordinates: [
-                              {meeting.location.coordinates[0].toFixed(6)},{" "}
-                              {meeting.location.coordinates[1].toFixed(6)}]
-                            </p>
-                          )}
-                      </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Left Column - Time & Location */}
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Meeting Details
+                </h2>
+
+                <div className="space-y-4">
+                  {/* Date & Time */}
+                  <div>
+                    <div className="flex items-center mb-2">
+                      <FaCalendarAlt className="text-blue-600 mr-3" />
+                      <h3 className="text-lg font-medium text-gray-700">
+                        Date & Time
+                      </h3>
+                    </div>
+                    <div className="pl-8">
+                      <p className="text-gray-700">
+                        <span className="font-medium">{formatDate(meeting.startTime)}</span>
+                      </p>
+                      <p className="text-gray-600">
+                        {formatTime(meeting.startTime)} - {formatTime(meeting.endTime)}
+                      </p>
                     </div>
                   </div>
-                </div>
-              )}
 
-            {/* Location tracking component */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                Location Sharing
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <LocationTracker meetingId={meetingId} token={token} />
-              </div>
-            </div>
-
-            {/* Map showing all attendee locations */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                Attendee Locations
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <AttendeeLocationsMap
-                  meetingId={meetingId}
-                  token={token}
-                  googleMapsApiKey={googleMapsApiKey}
-                />
-              </div>
-            </div>
-
-            {/* Location suggestions */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                Location Suggestions
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <LocationSuggestions
-                  meetingId={meetingId}
-                  token={token}
-                  onSelectLocation={handleLocationSelection}
-                />
-              </div>
-            </div>
-
-            {/* Show the location confirmation for meeting creator only */}
-            {isCreator && selectedLocationSuggestion && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                  Confirm Meeting Location
-                </h3>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <SelectMeetingLocation
-                    meetingId={meetingId}
-                    token={token}
-                    location={selectedLocationSuggestion}
-                    onSuccess={handleLocationConfirmed}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Organizer Section */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                Organizer
-              </h3>
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="flex items-center">
-                  <FaUserCircle className="text-blue-500 text-2xl mr-3" />
+                  {/* Location */}
                   <div>
-                    <p className="font-medium">
-                      {meeting.creator?.name || "Unknown"}
-                    </p>
-                    {meeting.creator?.email && (
-                      <p className="text-gray-600 flex items-center mt-1">
-                        <FaEnvelope className="mr-1 text-gray-400" size={14} />
-                        {meeting.creator.email}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Attendees Section */}
-            <div>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Attendees ({meeting.attendees.length})
-                </h3>
-                {isCreator && !isMeetingPast && (
-                  <Link
-                    to={`/meetings/${meeting._id}/invite`}
-                    className="flex items-center text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    <FaUserPlus className="mr-1" /> Invite More
-                  </Link>
-                )}
-              </div>
-
-              {meeting.attendees.length === 0 ? (
-                <p className="text-gray-500 italic">No attendees yet.</p>
-              ) : (
-                <div className="bg-gray-50 rounded-lg overflow-hidden">
-                  <ul className="divide-y divide-gray-200">
-                    {meeting.attendees.map((attendee, index) => (
-                      <li
-                        key={attendee._id || index}
-                        className="p-4 flex items-start justify-between"
-                      >
-                        <div className="flex items-start">
-                          <FaUserCircle className="text-gray-400 text-xl mt-1 mr-3" />
-                          <div>
-                            <p className="font-medium">
-                              {attendee.name || "Unnamed Attendee"}
-                            </p>
-                            <div className="text-sm text-gray-600">
-                              {attendee.email && (
-                                <div className="flex items-center mt-1">
-                                  <FaEnvelope
-                                    className="mr-1 text-gray-400"
-                                    size={12}
-                                  />
-                                  {attendee.email}
-                                </div>
-                              )}
-                              {attendee.phone &&(
-                                <div className="flex items-center mt-1">
-                                  <FaPhoneAlt
-                                    className="mr-1 text-gray-400"
-                                    size={12}
-                                  />
-                                  {attendee.phone}
-                                </div>
-                              )}
+                    <div className="flex items-center mb-2">
+                      <FaMapMarkerAlt className="text-blue-600 mr-3" />
+                      <h3 className="text-lg font-medium text-gray-700">
+                        Location
+                      </h3>
+                    </div>
+                    <div className="pl-8">
+                      {meeting.location &&
+                        (meeting.location.name ||
+                          meeting.location.address ||
+                          (meeting.location.coordinates &&
+                            meeting.location.coordinates.length === 2)) && (
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="flex">
+                              <div>
+                                {meeting.location.name && (
+                                  <p className="font-medium">{meeting.location.name}</p>
+                                )}
+                                {meeting.location.address && (
+                                  <p className="text-gray-600">
+                                    {meeting.location.address}
+                                  </p>
+                                )}
+                                {meeting.location.coordinates &&
+                                  meeting.location.coordinates.length === 2 && (
+                                    <p className="text-gray-500 text-sm mt-1">
+                                      Coordinates: [
+                                      {meeting.location.coordinates[0].toFixed(6)},{" "}
+                                      {meeting.location.coordinates[1].toFixed(6)}]
+                                    </p>
+                                  )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex items-center">
-                          {getStatusIcon(attendee.status)}
-                          <span
-                            className={`text-sm font-medium ${getStatusColor(
-                              attendee.status
-                            )}`}
-                          >
-                            {attendee.status.charAt(0).toUpperCase() +
-                              attendee.status.slice(1)}
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+                        )}
+                      {isCreator && !isMeetingPast && (
+                        <button
+                          onClick={() => setShowLocationSelector(!showLocationSelector)}
+                          className="mt-3 text-sm text-blue-600 hover:text-blue-800 underline"
+                          disabled={isSubmitting}
+                        >
+                          {showLocationSelector ? "Hide Map" : "Update Location"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-            {/* Action Buttons */}
-            {isCreator && (
-              <div className="mt-8 flex justify-end space-x-4">
-                {!isMeetingPast && (
-                  <Link
-                    to={`/meetings/${meeting._id}/edit`}
-                    className="flex items-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors"
-                  >
-                    <FaEdit className="mr-2" /> Edit Meeting
-                  </Link>
-                )}
-                <button
-                  onClick={handleDelete}
-                  className="flex items-center bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition-colors"
-                >
-                  <FaTrash className="mr-2" /> Delete Meeting
-                </button>
+                  {/* Location Map */}
+                  {showLocationSelector && (
+                    <div className="mt-4 border border-gray-200 rounded-lg p-4 w-full h-fit flex">
+                      <h3 className="text-lg font-semibold mb-2">Select a Location</h3>
+                      <div>
+                        <RealTimeLocation
+                          meetingId={meetingId}
+                          isCreator={isCreator}
+                          onLocationSelected={handleLocationSelected}
+                          selectionMode={true}
+                          initialLocation={mapInitialLocation}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+
+              {/* Right Column - Attendees */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800">
+                    Attendees
+                  </h2>
+                  {isCreator && !isMeetingPast && (
+                    <button
+                      onClick={() => setShowInviteForm(!showInviteForm)}
+                      className="flex items-center text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                      disabled={isSubmitting}
+                    >
+                      <FaUserPlus className="mr-1" /> Invite
+                    </button>
+                  )}
+                </div>
+                {/* Invite Form */}
+                {showInviteForm && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 className="text-lg font-medium text-blue-800 mb-2">
+                      Invite Attendee
+                    </h3>
+                    <form onSubmit={handleInviteSubmit} className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          value={inviteEmail}
+                          onChange={(e) => setInviteEmail(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="person@example.com"
+                          required
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowInviteForm(false)}
+                          className="px-3 py-1 text-gray-600 hover:text-gray-800"
+                          disabled={isSubmitting}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-400"
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? "Sending..." : "Send Invitation"}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* Attendees List */}
+                {!meeting.attendees || meeting.attendees.length === 0 ? (
+                  <p className="text-gray-500 italic">No attendees yet.</p>
+                ) : (
+                  <div className="bg-gray-50 rounded-lg overflow-hidden">
+                    <ul className="divide-y divide-gray-200">
+                      {meeting.attendees.map((attendee, index) => {
+                        const statusInfo = getAttendeeStatusInfo(attendee.status);
+                        return (
+                          <li
+                            key={attendee._id || index}
+                            className="p-4 flex items-start justify-between"
+                          >
+                            <div className="flex items-start">
+                              <FaUserCircle className="text-gray-400 text-xl mt-1 mr-3" />
+                              <div>
+                                <p className="font-medium">
+                                  {attendee.name || "Unnamed Attendee"}
+                                </p>
+                                <div className="text-sm text-gray-600">
+                                  {attendee.email && (
+                                    <div className="flex items-center mt-1">
+                                      {attendee.email}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              <span className={`flex items-center ${statusInfo.color}`}>
+                                {statusInfo.icon}
+                                <span className="ml-1 text-sm">
+                                  {statusInfo.text}
+                                </span>
+                              </span>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Real-Time Location Section */}
+            
+              </div>
+              
+            </div>
+            <div className="mt-6 w-full">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                    Real-Time Attendee Locations
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg overflow-hidden" style={{ height:"100%"}}>
+                    <RealTimeLocation
+                      meetingId={meetingId}
+                      isCreator={isCreator}
+                      createMode={false}
+                    />
+                  </div>
+                </div>
+          </div>
+
+          {/* Footer with action buttons */}
+          <div className="bg-gray-50 p-6 border-t border-gray-200">
+            <div className="flex justify-between items-center">
+              <div>
+                {isCreator && (
+                  <p className="text-sm text-gray-600">
+                    You created this meeting
+                  </p>
+                )}
+              </div>
+              <div className="flex space-x-3">
+                {isCreator && !isMeetingPast && (
+                  <>
+                    <button
+                      onClick={() => navigate(`/meetings/${meetingId}/edit`)}
+                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+                      disabled={isSubmitting}
+                    >
+                      <FaEdit className="mr-2" /> Edit
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-400"
+                      disabled={isSubmitting}
+                    >
+                      <FaTrash className="mr-2" /> {isSubmitting ? "Deleting..." : "Delete"}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -491,153 +574,3 @@ default:
 };
 
 export default MeetingDetail;
-              
-// import React, { useState, useEffect } from "react";
-// import axios from "axios";
-// import { useParams } from "react-router-dom";
-// import LocationTracker from "../../component/LocationTracker";
-// import LocationSuggestions from "../../component/LocationSuggestions";
-// import AttendeeLocationsMap from "../../component/AttendeeLocationsMap";
-// import SelectMeetingLocation from "../../component/SelectMeetingLocation";
-
-// const MeetingDetail = ({ user, token }) => {
-//   // Use useParams hook to get the meeting ID from the URL
-//   const { meetingId } = useParams();
-// const MAP_API_URL = import.meta.env.VITE_APP_GOOGLE_MAPS_API_KEYL;
-//   const [meeting, setMeeting] = useState(null);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [selectedLocationSuggestion, setSelectedLocationSuggestion] =
-//     useState(null);
-//   const [googleMapsApiKey, setGoogleMapsApiKey] = useState(MAP_API_URL);
-
-//   // Make sure to handle the case when meeting might be null
-//   const isMeetingCreator = meeting ? meeting.createdBy === user.id : false;
-
-//   useEffect(() => {
-//     if (meetingId) {
-//       fetchMeetingDetails();
-//     } else {
-//       setError("Meeting ID is missing");
-//       setLoading(false);
-//     }
-//   }, [meetingId]);
-
-//   const fetchMeetingDetails = async () => {
-//     try {
-//       setLoading(true);
-//       const response = await axios.get(`/meetings/${meetingId}`, {
-//         headers: { Authorization: `Bearer ${token}` },
-//       });
-//       setMeeting(response.data);
-//       setLoading(false);
-//     } catch (err) {
-//       setError("Failed to fetch meeting details");
-//       setLoading(false);
-//     }
-//   };
-
-//   const handleLocationSelection = (suggestion) => {
-//     setSelectedLocationSuggestion(suggestion);
-//   };
-
-//   const handleLocationConfirmed = async (finalLocation) => {
-//     try {
-//       // Update the meeting with the selected location
-//       await axios.put(
-//         `/api/meetings/${meetingId}`,
-//         { location: finalLocation },
-//         { headers: { Authorization: `Bearer ${token}` } }
-//       );
-
-//       // Refresh meeting details
-//       fetchMeetingDetails();
-
-//       // Reset the selected suggestion
-//       setSelectedLocationSuggestion(null);
-//     } catch (err) {
-//       setError("Failed to update meeting with selected location");
-//     }
-//   };
-
-//   if (loading) return <div className="loading">Loading meeting details...</div>;
-//   if (error) return <div className="error">{error}</div>;
-//   if (!meeting) return <div className="not-found">Meeting not found</div>;
-
-//   return (
-//     <div className="meeting-detail-page">
-//       <h1>{meeting.title}</h1>
-//       <div className="meeting-info">
-//         <p>
-//           <strong>Date:</strong> {new Date(meeting.date).toLocaleDateString()}
-//         </p>
-//         <p>
-//           <strong>Time:</strong> {new Date(meeting.date).toLocaleTimeString()}
-//         </p>
-//         {meeting.location && (
-//           <div className="selected-location">
-//             <h3>Meeting Location</h3>
-//             <p>
-//               <strong>{meeting.location.name}</strong>
-//             </p>
-//             <p>{meeting.location.address}</p>
-//           </div>
-//         )}
-//       </div>
-
-//       {/* Location tracking component */}
-//       <div className="location-section">
-//         <h2>Location Sharing</h2>
-//         <LocationTracker meetingId={meetingId} token={token} />
-//       </div>
-
-//       {/* Map showing all attendee locations */}
-//       <div className="map-section">
-//         <h2>Attendee Locations</h2>
-//         <AttendeeLocationsMap
-//           meetingId={meetingId}
-//           token={token}
-//           googleMapsApiKey={googleMapsApiKey}
-//         />
-//       </div>
-
-//       {/* Location suggestions */}
-//       <div className="suggestions-section">
-//         <LocationSuggestions
-//           meetingId={meetingId}
-//           token={token}
-//           onSelectLocation={handleLocationSelection}
-//         />
-//       </div>
-
-//       {/* Show the location confirmation for meeting creator only */}
-//       {isMeetingCreator && selectedLocationSuggestion && (
-//         <div className="confirm-location-section">
-//           <SelectMeetingLocation
-//             meetingId={meetingId}
-//             token={token}
-//             location={selectedLocationSuggestion}
-//             onSuccess={handleLocationConfirmed}
-//           />
-//         </div>
-//       )}
-
-//       {/* Show attendee list */}
-//       <div className="attendees-section">
-//         <h2>Attendees</h2>
-//         <ul className="attendee-list">
-//           {meeting.attendees.map((attendee) => (
-//             <li key={attendee.id} className="attendee-item">
-//               <span className="attendee-name">{attendee.name}</span>
-//               <span className={`status ${attendee.status}`}>
-//                 {attendee.status}
-//               </span>
-//             </li>
-//           ))}
-//         </ul>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default MeetingDetail;

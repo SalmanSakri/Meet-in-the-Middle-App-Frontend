@@ -28,11 +28,12 @@ import GetUserMeetings from "../pages/admindeshbord/GetUserMeetings";
 import CreateMeeting from "../pages/meeting/CreateMeeting";
 import MeetingDetails from "../pages/meeting/MeetingDetails";
 import EditMeeting from "../pages/meeting/EditMeeting ";
-
+import UserProfile from "../pages/profile/user/ProfilePage";
+import UpdateUserProfile from "../pages/profile/user/UpdateUserProfile";
 import InvitationResponse from "../pages/InvitationResponse";
 
 import MeetingLocation from "../component/MeetingLocation";
-
+import RealTimeLocation from "../pages/RealTimeLocation";
 const PublicRoute = () => {
   return (
     <Routes>
@@ -43,13 +44,29 @@ const PublicRoute = () => {
       <Route path="/create-password" element={<CreatePassword />} />
 
       <Route element={<ProtectedRoute />}>
+
+        {/* Dashboard */}
+        <Route path="/layout" element={<Layout />} />
+        <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+        {/* MEETING */}
+        <Route path="/create-meeting" element={<Layout><CreateMeeting /></Layout>} />
+        <Route path="/meetings/:meetingId/edit" element={<Layout><EditMeeting /></Layout>} />
+        <Route path="/meetings/:meetingId" element={<Layout><MeetingDetails /></Layout>} />
+        <Route path="/MeetingLocation" element={<Layout><MeetingLocation /></Layout>} />
+        <Route path="/invitation/:meetingId" element={<InvitationResponse />} />
+        {/*Profile Routes */ }
+        <Route path="/user/profile" element={ <Layout><UserProfile/></Layout>}/>
+        <Route path="/profile/edit" element={ <Layout><UpdateUserProfile/></Layout>}/>
+
+        {/* ADMIN PAGES */}
+
         {/* ADMIN AUTH */}
         <Route path="/admin/singup" element={<Layout><AdminRegister /></Layout>} />
         <Route path="/admin/login" element={<Layout><AdminLogin /></Layout>} />
         <Route path="/admin/forgot-password" element={<Layout><AdminForgotPassword /></Layout>} />
         <Route path="/admin/reset-password" element={<Layout><AdminResetPassword /></Layout>} />
         <Route path="/admin/verify-otp" element={<Layout><AdminVerifyOTP /></Layout>} />
-        {/* ADMIN PAGES */}
+
         {/* Admin Protected Routes */}
         <Route element={<PrivateAdminRoute />}>
           <Route element={<AdminLayout />}>
@@ -60,22 +77,14 @@ const PublicRoute = () => {
             <Route path="/admin/meetings/:meetingId" element={<GetMeetingDetails />} />
           </Route>
         </Route>
-        {/* Dashboard */}
-        <Route path="/layout" element={<Layout />} />
-        <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-        {/* MEETING */}
-        <Route path="/MeetingDetails" element={<MeetingDetails />} />
-        <Route path="/create-meeting" element={<Layout><CreateMeeting /></Layout>} />
-        <Route path="/meetings/:meetingId/edit" element={<Layout><EditMeeting /></Layout>} />
-        <Route path="/meetings/:meetingId" element={<Layout><MeetingDetails /></Layout>} />
-        <Route path="/MeetingLocation" element={<Layout><MeetingLocation /></Layout>} />
-        <Route path="/invitation/:meetingId" element={<InvitationResponse />} />
-   
+
       </Route>
 
       <Route path="/response/:meetingId/:token/:response" element={<InvitationResponse />} />
       {/* 404 Route */}
       <Route path="*" element={<PageNotFound />} />
+      <Route path="real" element={<RealTimeLocation />} />
+      
 
     </Routes>
   );

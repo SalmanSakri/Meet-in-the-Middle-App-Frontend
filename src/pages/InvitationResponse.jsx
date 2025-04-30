@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
 import {
   respondToInvitation,
   getMeetingById,
@@ -9,6 +9,7 @@ import { format } from "date-fns";
 
 const InvitationResponse = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { meetingId, token: urlToken, response: urlResponse } = useParams();
   const [searchParams] = useSearchParams();
 
@@ -18,19 +19,8 @@ const InvitationResponse = () => {
   const token = urlToken || queryToken;
   const responseAction = urlResponse || queryResponse;
 
-    // const dispatch = useDispatch();
-    // // Extract all parameters from URL path
-    // const { meetingId, token, response: responseAction } = useParams();
-    // // For manual response handling (if token/response in query params)
-    // const [searchParams] = useSearchParams();
-    // const queryToken = searchParams.get("token");
-    // const queryResponse = searchParams.get("response");
-
-    // // Use query params if path params are missing (flexible handling)
-    // const finalToken = token || queryToken;
-    // const finalResponse = responseAction || queryResponse;
-
-  const { loading } = useSelector((state) => state.meetings);
+  const { loading, currentMeeting } = useSelector((state) => state.meetings);
+  const { token: authToken } = useSelector((state) => state.auth);
   const [meetingInfo, setMeetingInfo] = useState(null);
   const [responseStatus, setResponseStatus] = useState({
     loading: false,
@@ -39,6 +29,7 @@ const InvitationResponse = () => {
     processed: false,
   });
 
+  // Fetch meeting data initially
   useEffect(() => {
     if (meetingId) {
       dispatch(getMeetingById(meetingId))
@@ -48,6 +39,7 @@ const InvitationResponse = () => {
     }
   }, [dispatch, meetingId]);
 
+  // Handle invitation response
   useEffect(() => {
     if (!responseStatus.processed && token && responseAction) {
       if (!["accept", "decline"].includes(responseAction)) {
@@ -75,6 +67,11 @@ const InvitationResponse = () => {
             error: null,
             processed: true,
           });
+          
+          // If the response was accept, refetch meeting to ensure we have latest location data
+          if (responseAction === "accept") {
+            dispatch(getMeetingById({ meetingId, token: authToken }));
+          }
         })
         .catch((err) => {
           setResponseStatus({
@@ -85,7 +82,7 @@ const InvitationResponse = () => {
           });
         });
     }
-  }, [dispatch, meetingId, token, responseAction, responseStatus.processed]);
+  }, [dispatch, meetingId, token, authToken, responseAction, responseStatus.processed]);
 
   const handleManualResponse = (action) => {
     if (!token) {
@@ -115,6 +112,11 @@ const InvitationResponse = () => {
           error: null,
           processed: true,
         });
+        
+        // If accepting, refetch the meeting to get updated data
+        if (action === "accept") {
+          dispatch(getMeetingById({ meetingId, token: authToken }));
+        }
       })
       .catch((err) => {
         setResponseStatus({
@@ -124,6 +126,26 @@ const InvitationResponse = () => {
           processed: true,
         });
       });
+  };
+
+  // Handler to navigate to meeting details with proper location data
+  const handleViewDetails = () => {
+    // Ensure we navigate with the most up-to-date meeting data from Redux
+    if (currentMeeting && currentMeeting._id === meetingId) {
+      navigate(`/meetings/${meetingId}`);
+    } else {
+      // If we don't have the current meeting in Redux state, fetch it first
+      dispatch(getMeetingById({ meetingId, token: authToken }))
+        .unwrap()
+        .then(() => {
+          navigate(`/meetings/${meetingId}`);
+        })
+        .catch((err) => {
+          console.error("Error fetching meeting before navigation:", err);
+          // Still navigate even if there's an error
+          navigate(`/meetings/${meetingId}`);
+        });
+    }
   };
 
   if (loading || responseStatus.loading) {
@@ -165,16 +187,21 @@ const InvitationResponse = () => {
                   "h:mm a"
                 )}
               </p>
+              {meetingInfo.location && meetingInfo.location.name && (
+                <p className="text-sm font-medium mt-2">
+                  Location: {meetingInfo.location.name}
+                </p>
+              )}
             </div>
           )}
           <div className="flex justify-center gap-3 mt-6">
             {responseAction === "accept" && (
-              <Link
-                to={`/meetings/${meetingId}`}
+              <button
+                onClick={handleViewDetails}
                 className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
               >
                 View Details
-              </Link>
+              </button>
             )}
             <Link
               to="/dashboard"
@@ -219,6 +246,11 @@ const InvitationResponse = () => {
                     "h:mm a"
                   )}
                 </p>
+                {meetingInfo.location && meetingInfo.location.name && (
+                  <p className="text-sm mt-2">
+                    Location: {meetingInfo.location.name}
+                  </p>
+                )}
               </div>
             )}
             <p className="mb-4">
