@@ -6,7 +6,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const adminApi = createApi({
   reducerPath: "adminApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_ADMIN_URL || "/api/admin",
+    baseUrl: import.meta.env.VITE_API_ADMIN_URL,
     prepareHeaders: (headers, { getState }) => {
       try {
         const token = getState().adminAuth.token;

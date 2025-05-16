@@ -333,7 +333,7 @@ const SignUp = () => {
           </div>
 
           <h1 className="text-xl sm:text-2xl font-bold text-gray-800 text-center">
-            Create Admin Account
+            Create User Account
           </h1>
           <p className="text-gray-500 text-center mt-1 text-sm sm:text-base">
             Please fill in the details to create your account
@@ -378,7 +378,7 @@ const SignUp = () => {
             </div>
 
             {/* Email field */}
-            <div className="mb-2">
+            <div className="mb-1">
               <label
                 htmlFor="email"
                 className="block font-bold text-gray-700 mb-1 text-sm sm:text-base"

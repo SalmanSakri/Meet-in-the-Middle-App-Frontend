@@ -181,7 +181,7 @@ const Login = () => {
   return (
     <div className="flex min-h-screen">
       {/* Left Side - Image Section with lazy loading */}
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-8 bg-[#fdf5f6]">
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center  bg-[#fdf5f6]">
         <img
           src={LoginImage}
           alt="Login Background"
@@ -195,7 +195,7 @@ const Login = () => {
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-16 py-8">
         <div className="w-full max-w-md">
           {/* Logo/Illustration */}
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-1">
             <img
               src={AuthImg}
               alt="Login Illustration"
@@ -204,17 +204,17 @@ const Login = () => {
             />
           </div>
 
-          <h1 className="text-2xl font-semibold text-center mb-2">
-            Login to Admin Panel
+          <h1 className="text-2xl font-semibold text-center mb-1">
+            Login to User Panel
           </h1>
-          <p className="text-gray-500 mb-4 text-center">
+          <p className="text-gray-500 mb-1 text-center">
             Please enter your email and password to continue
           </p>
 
           {/* Display error messages from Redux */}
           {error && submitAttempted && (
             <div
-              className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-center"
+              className="bg-red-50 text-red-600 p-3 rounded-lg mb-2 text-center"
               role="alert"
               aria-live="assertive"
             >
@@ -225,10 +225,10 @@ const Login = () => {
           {/* Login Form with improved validation and accessibility */}
           <form onSubmit={handleLogin} noValidate>
             {/* Email field */}
-            <div className="mb-4">
+            <div className="mb-1">
               <label
                 htmlFor="email"
-                className="block font-bold text-gray-700 mb-2"
+                className="block font-bold text-gray-700 mb-1"
               >
                 Email Address
               </label>
@@ -248,17 +248,17 @@ const Login = () => {
                 aria-describedby={formErrors.email ? "email-error" : undefined}
               />
               {formErrors.email && (
-                <p id="email-error" className="text-red-500 text-sm mt-1 mb-2">
+                <p id="email-error" className="text-red-500 text-sm mt-1 mb-1">
                   {formErrors.email}
                 </p>
               )}
             </div>
 
             {/* Password field with toggle visibility */}
-            <div className="mb-4 relative">
+            <div className="mb-1 relative">
               <label
                 htmlFor="password"
-                className="block font-bold text-gray-700 mb-2"
+                className="block font-bold text-gray-700 mb-1"
               >
                 Password
               </label>
@@ -296,7 +296,7 @@ const Login = () => {
               {formErrors.password && (
                 <p
                   id="password-error"
-                  className="text-red-500 text-sm mt-1 mb-2"
+                  className="text-red-500 text-sm mt-1 mb-1"
                 >
                   {formErrors.password}
                 </p>
@@ -304,7 +304,7 @@ const Login = () => {
             </div>
 
             {/* Forgot Password Link */}
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end mb-1">
               <Link
                 to="/forget-password"
                 className="text-[#B71B36] hover:underline text-sm font-medium"
@@ -324,7 +324,7 @@ const Login = () => {
             </button>
 
             {/* Link to Signup */}
-            <div className="mt-4 text-center">
+            <div className="mt-1 text-center">
               <p className="text-gray-600">
                 Don't have an account?{" "}
                 <Link
