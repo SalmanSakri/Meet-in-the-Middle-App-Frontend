@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from 'react-redux';
 import { FaArrowLeft } from "react-icons/fa";
-import { IoCalendarOutline, IoLogOut } from "react-icons/io5";
+import {  IoLogOut } from "react-icons/io5";
 import { MdDashboard } from "react-icons/md";
 import { IoMdCreate } from "react-icons/io";
 import { RiAdminFill } from "react-icons/ri";

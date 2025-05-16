@@ -1,7 +1,7 @@
 /**
  * @file Login.jsx
  * @description Login component with form validation, Redux integration, and optimized rendering
- * @version 1.2.0
+ * @version 1.3.0
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
@@ -9,7 +9,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser, resetError } from "../../redux/slices/authSlice";
 import { PiEye, PiEyeSlash } from "react-icons/pi";
-import { toast } from "react-toastify";
+// Import toast utilities like in SignUp component
+import { showSuccess, showInfo, showError } from "../../utils/toastUtils";
 import LoadingSpinner from "../../component/LoadingSpinner";
 // Lazy load images for better performance
 import LoginImage from "../../assets/login.svg";
@@ -71,9 +72,11 @@ const Login = () => {
       // If OTP verification is required, navigate to OTP page
       if (otpVerificationRequired) {
         navigate("/otp-verification");
+        showInfo("Please verify your account with the OTP code");
       } else {
         // Otherwise, navigate to dashboard
         navigate("/layout");
+        showSuccess("Login successful!");
       }
     }
   }, [dispatch, isAuthenticated, otpVerificationRequired, navigate]);
@@ -83,7 +86,7 @@ const Login = () => {
    */
   useEffect(() => {
     if (error && submitAttempted) {
-      toast.error(error);
+      showError(error);
     }
   }, [error, submitAttempted]);
 
@@ -171,17 +174,34 @@ const Login = () => {
         // Make sure we display the error message even if it's caught here
         console.error("Login dispatch error:", err);
         if (err?.message) {
-          toast.error(err.message);
+          showError(err.message);
         }
       }
     },
     [formData, dispatch, validateForm]
   );
 
+  // Memoized error message display - similar to SignUp component
+  const ErrorDisplay = useMemo(() => {
+    // Only show redux errors here, form validation errors are shown inline
+    if (error && submitAttempted) {
+      return (
+        <div
+          className="bg-red-50 text-red-600 p-3 rounded-lg mb-2 text-center"
+          role="alert"
+          aria-live="assertive"
+        >
+          {error}
+        </div>
+      );
+    }
+    return null;
+  }, [error, submitAttempted]);
+
   return (
     <div className="flex min-h-screen">
       {/* Left Side - Image Section with lazy loading */}
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center  bg-[#fdf5f6]">
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#fdf5f6]">
         <img
           src={LoginImage}
           alt="Login Background"
@@ -211,16 +231,8 @@ const Login = () => {
             Please enter your email and password to continue
           </p>
 
-          {/* Display error messages from Redux */}
-          {error && submitAttempted && (
-            <div
-              className="bg-red-50 text-red-600 p-3 rounded-lg mb-2 text-center"
-              role="alert"
-              aria-live="assertive"
-            >
-              {error}
-            </div>
-          )}
+          {/* Display error messages from Redux - Now using ErrorDisplay component */}
+          {ErrorDisplay}
 
           {/* Login Form with improved validation and accessibility */}
           <form onSubmit={handleLogin} noValidate>
@@ -287,9 +299,10 @@ const Login = () => {
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
-                    <PiEyeSlash size={24} aria-hidden="true" />
+                      <PiEye size={24} aria-hidden="true" />
+                 
                   ) : (
-                    <PiEye size={24} aria-hidden="true" />
+                     <PiEyeSlash size={24} aria-hidden="true" />
                   )}
                 </button>
               </div>
