@@ -65,9 +65,13 @@ npm run dev
 ```bash
 ├── assets
 ├── components
+├── layout
 ├── pages
 ├── redux
+├── routes
 ├── services
 ├── utils
 └── App.jsx
+└── main.jsx
+└── store.js
 ```
