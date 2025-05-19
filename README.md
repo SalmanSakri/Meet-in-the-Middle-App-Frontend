@@ -48,26 +48,19 @@ A powerful and modern web application designed to make meeting planning effortle
 ```bash
 git clone https://github.com/SalmanSakri/Meet-in-the-Middle-App-Frontend.git
 cd Meet-in-the-Middle-App-Frontend
+
 2. Install dependencies
-bash
-Copy
-Edit
 npm install
+
 3. Create .env file
-env
-Copy
-Edit
 VITE_BACKEND_URL=http://localhost:5000
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
 4. Start the dev server
-bash
-Copy
-Edit
 npm run dev
+
 📁 Folder Structure
-css
-Copy
-Edit
+
 📦 src
 ├── assets
 ├── components
@@ -76,9 +69,8 @@ Edit
 ├── services
 ├── utils
 └── App.jsx
-🔗 Backend Repo
-Don’t forget to check out the backend API:
-🔗 Meet-in-the-Middle-App-Backend
+
+
 
 🙌 Contributing
 Contributions are welcome! Feel free to fork the repository and submit a pull request.
