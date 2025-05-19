@@ -59,9 +59,9 @@ VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 4. Start the dev server
 npm run dev
 ```
-##📁 Folder Structure
+## 📁 Folder Structure
 
-###📦 src
+### 📦 src
 ```bash
 ├── assets
 ├── components
