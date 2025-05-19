@@ -21,26 +21,11 @@ A powerful and modern web application designed to make meeting planning effortle
 
 ✅ OTP-based user authentication  
 ✅ Create & join meetings using links  
-✅ Real-time location sharing (Google Maps)  
+✅ Real-time location sharing
 ✅ Admin & User dashboards  
 ✅ Invitation token system  
 ✅ Responsive and user-friendly UI  
 ✅ Built with **React**, **Redux**, and **Tailwind CSS**
-
----
-
-## 🖼️ Screenshots
-
-> Replace these with actual screenshots of your app
-
-![Home Page](./screenshots/home.png)
-*Home Page*
-
-![Dashboard](./screenshots/dashboard.png)
-*User Dashboard*
-
-![Map View](./screenshots/map.png)
-*Location Suggestions*
 
 ---
 
@@ -53,7 +38,6 @@ A powerful and modern web application designed to make meeting planning effortle
 | **React Router**| Routing                    |
 | **Tailwind CSS**| Styling framework          |
 | **Axios**       | API calls                  |
-| **Google Maps API** | Location services     |
 
 ---
 
