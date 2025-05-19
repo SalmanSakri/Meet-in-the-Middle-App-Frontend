@@ -62,6 +62,7 @@ npm run dev
 ##📁 Folder Structure
 
 ###📦 src
+```bash
 ├── assets
 ├── components
 ├── pages
@@ -69,3 +70,4 @@ npm run dev
 ├── services
 ├── utils
 └── App.jsx
+```
