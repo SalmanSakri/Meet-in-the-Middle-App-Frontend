@@ -58,10 +58,10 @@ VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 
 4. Start the dev server
 npm run dev
+```
+##📁 Folder Structure
 
-📁 Folder Structure
-
-📦 src
+###📦 src
 ├── assets
 ├── components
 ├── pages
@@ -69,29 +69,3 @@ npm run dev
 ├── services
 ├── utils
 └── App.jsx
-
-
-
-🙌 Contributing
-Contributions are welcome! Feel free to fork the repository and submit a pull request.
-
-📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-👨‍💻 Author
-Made with ❤️ by Salman Sakri
-Let's connect on LinkedIn
-
-yaml
-Copy
-Edit
-
----
-
-### ✅ Next Steps for You
-
-- Replace `./screenshots/...` with your real screenshot images.
-- Update your LinkedIn link and any placeholder values.
-- Add the correct backend URL and API key in your `.env`.
-
-Would you like help creating custom badges or designing a logo/banner for the repo?
